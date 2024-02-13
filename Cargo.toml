@@ -1,0 +1,13 @@
+[package]
+name = "anticipate"
+version = "0.1.0"
+edition = "2021"
+description = "Script runner for rexpect with asciinema support"
+
+[workspace]
+members = [
+  "parser",
+]
+
+[dependencies]
+rexpect = "0.5"
