@@ -5,8 +5,9 @@ edition = "2021"
 description = "Script runner for rexpect with asciinema support"
 
 [workspace]
-members = [
+members = [ "compiler",
   "parser",
+  "compiler",
 ]
 
 [dependencies]

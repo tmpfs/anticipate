@@ -7,8 +7,12 @@ use std::ops::Range;
 enum Token {
     #[regex("#[$]\\s+sendline\\s+")]
     SendLine,
+    #[regex("#[$]\\s+sendcontrol\\s+")]
+    SendControl,
     #[regex("#[$]\\s+expect\\s+")]
     Expect,
+    #[regex("#[$]\\s+regex\\s+")]
+    Regex,
     #[regex("\r?\n")]
     Newline,
     #[regex(".", priority = 0)]
@@ -22,14 +26,24 @@ type LexResult<T> = std::result::Result<T, LexError>;
 pub enum Command<'s> {
     /// Send a line of text.
     SendLine(&'s str),
-    /// Expect a line of text.
+    /// Send a control character.
+    SendControl(char),
+    /// Expect a string.
     Expect(&'s str),
+    /// Expect a regex match.
+    Regex(&'s str),
 }
 
 /// Sequence of commands to execute.
 #[derive(Debug, Default)]
 pub struct Commands<'s> {
     commands: Vec<Command<'s>>,
+}
+
+impl<'s> Commands<'s> {
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item = &'a Command<'s>> {
+        self.commands.iter()
+    }
 }
 
 pub struct CommandParser<'s> {
@@ -66,6 +80,20 @@ impl<'s> CommandParser<'s> {
                 Token::Expect => {
                     let text = self.parse_text(&mut lex)?;
                     cmd.commands.push(Command::Expect(text));
+                }
+                Token::Regex => {
+                    let text = self.parse_text(&mut lex)?;
+                    cmd.commands.push(Command::Regex(text));
+                }
+                Token::SendControl => {
+                    let text = self.parse_text(&mut lex)?;
+                    let mut it = text.chars();
+                    if let Some(c) = it.next() {
+                        cmd.commands.push(Command::SendControl(c));
+                        if it.next().is_some() {
+                            panic!("too many characters");
+                        }
+                    }
                 }
                 _ => {}
             }
@@ -105,6 +133,8 @@ mod test {
         let source = r#"
 #$ sendline foo
 #$ expect bar
+#$ regex [0-9]
+#$ sendcontrol c
 "#;
         let parser = CommandParser::new(source);
         let commands = parser.parse()?;
