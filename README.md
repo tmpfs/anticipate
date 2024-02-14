@@ -55,7 +55,7 @@ sos-server start target/config.toml
 
 The syntax is inspired by [asciinema-automation](https://github.com/PierreMarchand20/asciinema_automation/).
 
-Environment variables are interpolated for commands sent to the pseudo terminalwhich makes it easier to share values across scripts. 
+Environment variables are interpolated for commands sent to the pseudo terminal which makes it easier to share values across scripts. 
 
 ```
 export NAME=foo
