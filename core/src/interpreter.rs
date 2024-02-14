@@ -118,7 +118,7 @@ impl ScriptFile {
     pub fn path(&self) -> &PathBuf {
         &self.path
     }
-    
+
     /// Source contents of the file.
     pub fn source(&self) -> &str {
         self.source.borrow_source()
@@ -160,15 +160,14 @@ impl ScriptFile {
         Ok(results)
     }
 
-    /// Execute the command and instructions in a pseudo-terminal 
+    /// Execute the command and instructions in a pseudo-terminal
     /// running in a thread.
     pub fn run(&self, options: InterpreterOptions) {
         thread::scope(|s| {
             let cmd = options.command.clone();
 
             let handle = s.spawn(move || {
-                let instructions =
-                    self.source.borrow_instructions();
+                let instructions = self.source.borrow_instructions();
                 let is_cinema = options.cinema.is_some();
 
                 if let Some(cinema) = &options.cinema {
@@ -250,6 +249,9 @@ impl ScriptFile {
                         Instruction::Wait(delay) => {
                             sleep(Duration::from_millis(*delay));
                         }
+                        Instruction::Send(line) => {
+                            p.send(line.as_ref())?;
+                        }
                         Instruction::SendLine(line) => {
                             let line = ScriptParser::interpolate(*line)?;
                             if let Some(cinema) = &options.cinema {
@@ -269,6 +271,9 @@ impl ScriptFile {
                         }
                         Instruction::ReadLine => {
                             p.read_line()?;
+                        }
+                        Instruction::Flush => {
+                            p.flush()?;
                         }
                         Instruction::Comment(_) => {}
                     }

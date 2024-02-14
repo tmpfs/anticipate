@@ -1,4 +1,4 @@
-use anticipate_core::{ScriptParser, Instruction, Error};
+use anticipate_core::{Error, Instruction, ScriptParser};
 use anyhow::Result;
 
 #[test]
@@ -15,7 +15,10 @@ fn parse_sendline() -> Result<()> {
     let source = "#$ sendline foo";
     let instructions = ScriptParser.parse(source)?;
     assert_eq!(1, instructions.len());
-    assert!(matches!(instructions.first(), Some(Instruction::SendLine(_))));
+    assert!(matches!(
+        instructions.first(),
+        Some(Instruction::SendLine(_))
+    ));
     Ok(())
 }
 
@@ -34,7 +37,10 @@ fn parse_sendline_raw() -> Result<()> {
     let source = "foo";
     let instructions = ScriptParser.parse(source)?;
     assert_eq!(1, instructions.len());
-    assert!(matches!(instructions.first(), Some(Instruction::SendLine(_))));
+    assert!(matches!(
+        instructions.first(),
+        Some(Instruction::SendLine(_))
+    ));
     Ok(())
 }
 
@@ -43,7 +49,10 @@ fn parse_sendline_raw_numeric() -> Result<()> {
     let source = "2";
     let instructions = ScriptParser.parse(source)?;
     assert_eq!(1, instructions.len());
-    assert!(matches!(instructions.first(), Some(Instruction::SendLine(_))));
+    assert!(matches!(
+        instructions.first(),
+        Some(Instruction::SendLine(_))
+    ));
     Ok(())
 }
 
@@ -70,7 +79,10 @@ fn parse_sendcontrol() -> Result<()> {
     let source = "#$ sendcontrol c";
     let instructions = ScriptParser.parse(source)?;
     assert_eq!(1, instructions.len());
-    assert!(matches!(instructions.first(), Some(Instruction::SendControl(_))));
+    assert!(matches!(
+        instructions.first(),
+        Some(Instruction::SendControl(_))
+    ));
     Ok(())
 }
 
@@ -88,7 +100,10 @@ fn parse_comment() -> Result<()> {
     let source = "# this is a comment that does nothing";
     let instructions = ScriptParser.parse(source)?;
     assert_eq!(1, instructions.len());
-    assert!(matches!(instructions.first(), Some(Instruction::Comment(_))));
+    assert!(matches!(
+        instructions.first(),
+        Some(Instruction::Comment(_))
+    ));
     Ok(())
 }
 
@@ -111,7 +126,7 @@ fn parse_unknown() -> Result<()> {
     assert!(matches!(result, Err(Error::UnknownInstruction(_))));
 
     if let Err(Error::UnknownInstruction(cmd)) = result {
-        assert_eq!("foobar", cmd);
+        assert_eq!("#$ foobar", cmd);
     } else {
         panic!("expected unknown instruction error");
     }

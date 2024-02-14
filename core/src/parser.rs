@@ -1,6 +1,6 @@
 use crate::{error::LexError, Error, Result};
 use logos::{Lexer, Logos};
-use std::{ops::Range, borrow::Cow};
+use std::{borrow::Cow, ops::Range};
 
 fn pragma(lex: &mut Lexer<Token>) -> Option<String> {
     let slice = lex.slice();
@@ -34,6 +34,10 @@ enum Token {
     Wait(u64),
     #[regex("#[$]\\s+readline\\s*")]
     ReadLine,
+    #[regex("#[$]\\s+send ")]
+    Send,
+    #[regex("#[$]\\s+flush\\s*")]
+    Flush,
     #[regex("#[$].", priority = 2)]
     Command,
     #[regex("#[^$].", priority = 1)]
@@ -72,6 +76,10 @@ pub enum Instruction<'s> {
     Comment(&'s str),
     /// Read a line of output.
     ReadLine,
+    /// Send text, the output stream is not flushed.
+    Send(&'s str),
+    /// Flush the output stream.
+    Flush,
 }
 
 /// Sequence of commands to execute.
@@ -109,9 +117,15 @@ impl ScriptParser {
                     }
                     cmd.push(Instruction::Pragma(pragma));
                 }
+                Token::Send => {
+                    let text = self.parse_text(&mut lex, source, None)?;
+                    cmd.push(Instruction::Send(text));
+                }
+                Token::Flush => {
+                    cmd.push(Instruction::Flush);
+                }
                 Token::SendLine => {
                     let text = self.parse_text(&mut lex, source, None)?;
-                        
                     cmd.push(Instruction::SendLine(text));
                 }
                 Token::Expect => {
@@ -140,7 +154,9 @@ impl ScriptParser {
                     let text =
                         self.parse_text(&mut lex, source, Some(span))?;
                     if text.starts_with("#$") {
-                        return Err(Error::UnknownInstruction(text.to_owned()));
+                        return Err(Error::UnknownInstruction(
+                            text.to_owned(),
+                        ));
                     }
                     cmd.push(Instruction::SendLine(text));
                 }
@@ -204,4 +220,3 @@ impl ScriptParser {
         }
     }
 }
-

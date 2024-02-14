@@ -125,10 +125,7 @@ fn start() -> Result<()> {
             }
             let scripts = ScriptFile::parse_files(input)?;
             for script in scripts {
-                println!(
-                    "{:#?}",
-                    script.instructions(),
-                );
+                println!("{:#?}", script.instructions(),);
             }
         }
         Command::Run {

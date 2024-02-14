@@ -52,6 +52,8 @@ sos-server start target/config.toml
 * [regex](#regex) - `#$ regex [0-9]`
 * [readline](#read-line) - `#$ readline`
 * [wait](#wait) - `#$ wait 500`
+* [send](#send) - `#$ send echo`
+* [flush](#flush) - `#$ flush`
 
 The syntax is inspired by [asciinema-automation](https://github.com/PierreMarchand20/asciinema_automation/).
 
@@ -129,6 +131,22 @@ To wait for a number of milliseconds:
 
 ```
 #$ wait 500
+```
+
+### Send
+
+Send text to the program without flushing the stream:
+
+```
+#$ send echo
+```
+
+### Flush
+
+Flush the buffer being sent to the pseudo-terminal:
+
+```
+#$ flush
 ```
 
 ## License
