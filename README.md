@@ -40,7 +40,6 @@ cat target/config.toml
 #$ expect path = "server/accounts"
 
 sos-server start target/config.toml
-
 #$ sendcontrol c
 ```
 
