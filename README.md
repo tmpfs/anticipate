@@ -27,6 +27,23 @@ To finish recording we send the `exit` command which will be captured and includ
 
 See the progam help for more options.
 
+## Example
+
+```shell
+mkdir -p target/server/accounts
+#$ readline
+
+sos-server init target/config.toml --path server/accounts
+#$ readline
+
+cat target/config.toml
+#$ expect path = "server/accounts"
+
+sos-server start target/config.toml
+
+#$ sendcontrol c
+```
+
 ## Syntax
 
 * [pragma](#pragma) - `#!`
