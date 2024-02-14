@@ -251,10 +251,11 @@ impl ScriptFile {
                             sleep(Duration::from_millis(*delay));
                         }
                         Instruction::SendLine(line) => {
+                            let line = ScriptParser::interpolate(*line)?;
                             if let Some(cinema) = &options.cinema {
-                                type_text(&mut p, line, cinema)?;
+                                type_text(&mut p, line.as_ref(), cinema)?;
                             } else {
-                                p.send_line(line)?;
+                                p.send_line(line.as_ref())?;
                             }
                         }
                         Instruction::SendControl(ctrl) => {

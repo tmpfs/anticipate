@@ -122,17 +122,12 @@ fn parse_unknown() -> Result<()> {
 fn parse_unknown_empty() -> Result<()> {
     let source = "#$";
     let result = ScriptParser.parse(source);
-
-    println!("{:#?}", result);
-
-    /*
     assert!(matches!(result, Err(Error::UnknownInstruction(_))));
 
     if let Err(Error::UnknownInstruction(cmd)) = result {
-        assert_eq!("foobar", cmd);
+        assert_eq!("#$", cmd);
     } else {
         panic!("expected unknown instruction error");
     }
-    */
     Ok(())
 }

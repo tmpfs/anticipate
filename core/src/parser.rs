@@ -1,6 +1,6 @@
 use crate::{error::LexError, Error, Result};
 use logos::{Lexer, Logos};
-use std::ops::Range;
+use std::{ops::Range, borrow::Cow};
 
 fn pragma(lex: &mut Lexer<Token>) -> Option<String> {
     let slice = lex.slice();
@@ -40,6 +40,15 @@ enum Token {
     Comment,
     #[regex("\r?\n")]
     Newline,
+    #[regex(".", priority = 0)]
+    Text,
+}
+
+#[derive(Logos, Debug, PartialEq, Clone)]
+#[logos(error = LexError)]
+enum EnvVars {
+    #[regex("[$][a-zA-Z0-9_]+")]
+    Var,
     #[regex(".", priority = 0)]
     Text,
 }
@@ -168,6 +177,31 @@ impl ScriptParser {
             next_token = lex.next();
         }
         Ok(&source[begin.start..finish.end])
+    }
+
+    pub(crate) fn interpolate(value: &str) -> Result<Cow<str>> {
+        if value.contains("$") {
+            let mut s = String::new();
+            let mut lex = EnvVars::lexer(value);
+            let mut next_token = lex.next();
+            while let Some(token) = next_token.take() {
+                let token = token?;
+                match token {
+                    EnvVars::Var => {
+                        let var = lex.slice();
+                        if let Ok(val) = std::env::var(&var[1..]) {
+                            s.push_str(&val);
+                        } else {
+                            s.push_str(var);
+                        }
+                    }
+                    _ => s.push_str(lex.slice()),
+                }
+            }
+            Ok(Cow::Owned(s))
+        } else {
+            Ok(Cow::Borrowed(value))
+        }
     }
 }
 
