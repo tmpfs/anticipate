@@ -2,7 +2,7 @@
 
 Script based automation using [rexpect](https://docs.rs/rexpect/latest/rexpect/) with support for [asciinema][].
 
-Perfect for automating demos of CLI tools.
+Perfect for demos of CLI tools and useful for automating integration testing.
 
 ## Install
 
