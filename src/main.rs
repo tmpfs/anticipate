@@ -127,7 +127,7 @@ fn start() -> Result<()> {
             for script in scripts {
                 println!(
                     "{:#?}",
-                    script.borrow_instructions().as_ref().unwrap()
+                    script.instructions(),
                 );
             }
         }
@@ -166,7 +166,7 @@ fn start() -> Result<()> {
 
             let scripts = ScriptFile::parse_files(input)?;
             for script in scripts {
-                let file_name = script.borrow_path().file_name().unwrap();
+                let file_name = script.path().file_name().unwrap();
                 let mut output_file = output.join(file_name);
                 output_file.set_extension("cast");
 

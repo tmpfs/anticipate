@@ -107,10 +107,32 @@ impl InterpreterOptions {
     }
 }
 
+/// Script file.
+pub struct ScriptFile {
+    source: ScriptSource,
+}
+
+impl ScriptFile {
+    /// Path to the source file.
+    pub fn path(&self) -> &PathBuf {
+        self.source.borrow_path()
+    }
+    
+    /// Source contents of the file.
+    pub fn source(&self) -> &str {
+        self.source.borrow_source()
+    }
+
+    /// Script instructions.
+    pub fn instructions<'s>(&'s self) -> &'s Instructions<'s> {
+        self.source.borrow_instructions()
+    }
+}
+
 #[self_referencing]
 #[derive(Debug)]
 /// Script file.
-pub struct ScriptFile {
+pub struct ScriptSource {
     /// Path to the source file.
     pub path: PathBuf,
     /// Script source.
@@ -118,7 +140,7 @@ pub struct ScriptFile {
     /// Parsed instructions.
     #[borrows(source)]
     #[covariant]
-    pub instructions: Result<Instructions<'this>>,
+    pub instructions: Instructions<'this>,
 }
 
 impl ScriptFile {
@@ -128,30 +150,27 @@ impl ScriptFile {
         for path in paths {
             tracing::info!(path = ?path, "parse file");
             let source = std::fs::read_to_string(&path)?;
-            let script = ScriptFileBuilder {
+            let source = ScriptSourceTryBuilder {
                 path,
                 source,
                 instructions_builder: |source| ScriptParser.parse(source),
             }
-            .build();
+            .try_build()?;
 
-            if let Err(e) = script.borrow_instructions() {
-                return Err(Error::Message(e.to_string()));
-            }
-
-            results.push(script);
+            results.push(ScriptFile { source });
         }
         Ok(results)
     }
 
-    /// Execute the pty command and instructions in a thread.
+    /// Execute the command and instructions in a pseudo-terminal 
+    /// running in a thread.
     pub fn run(&self, options: InterpreterOptions) {
         thread::scope(|s| {
             let cmd = options.command.clone();
 
             let handle = s.spawn(move || {
                 let instructions =
-                    self.borrow_instructions().as_ref().unwrap();
+                    self.source.borrow_instructions();
                 let is_cinema = options.cinema.is_some();
 
                 if let Some(cinema) = &options.cinema {
@@ -278,7 +297,7 @@ impl ScriptFile {
     fn resolve_path(&self, input: &str) -> Result<String> {
         let path = PathBuf::from(input);
         if path.is_relative() {
-            if let Some(parent) = self.borrow_path().parent() {
+            if let Some(parent) = self.source.borrow_path().parent() {
                 let new_path = parent.join(input);
                 let path = new_path.canonicalize()?;
                 return Ok(path.to_string_lossy().as_ref().to_owned());
