@@ -1,9 +1,0 @@
-[package]
-name = "compiler"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-thiserror = "1"
-rexpect = "0.5"
-anticipate-parser = { version = "0.1", path = "../parser" }

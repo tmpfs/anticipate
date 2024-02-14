@@ -1,11 +1,15 @@
 [package]
-name = "anticipate-parser"
+name = "anticipate-core"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 logos = "0.14"
 thiserror = "1"
+rexpect = "0.5"
+ouroboros = "0.18"
+tracing = "0.1"
+unicode-segmentation = "1"
 
 [dev-dependencies]
 anyhow = "1"

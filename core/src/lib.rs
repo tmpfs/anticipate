@@ -1,6 +1,8 @@
+mod compiler;
 mod error;
 mod parser;
 
+pub use compiler::{CompileOptions, ScriptFile};
 pub use error::Error;
 pub use parser::*;
 
