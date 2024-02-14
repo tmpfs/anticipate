@@ -54,8 +54,12 @@ pub enum Command {
         overwrite: bool,
 
         /// Delay between keystrokes.
-        #[clap(short, long)]
+        #[clap(short, long, default_value = "80")]
         delay: u64,
+
+        /// Standard deviation for gaussian distribution.
+        #[clap(long, default_value = "5.0")]
+        deviation: f64,
 
         /// Type pragma commands.
         #[clap(long)]
@@ -101,6 +105,7 @@ fn start() -> Result<()> {
             input,
             delay,
             type_pragma,
+            deviation,
             logs,
         } => {
             if let Some(logs) = logs {
@@ -123,6 +128,7 @@ fn start() -> Result<()> {
                 let cinema = CinemaOptions {
                     delay,
                     type_pragma,
+                    deviation,
                 };
 
                 let options = InterpreterOptions::new_recording(

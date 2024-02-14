@@ -11,6 +11,7 @@ ouroboros = "0.18"
 tracing = "0.1"
 unicode-segmentation = "1"
 probability = "0.20"
+rand = "0.8"
 
 [dev-dependencies]
 anyhow = "1"

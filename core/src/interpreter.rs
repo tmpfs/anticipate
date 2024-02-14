@@ -7,6 +7,15 @@ use std::{
     time::Duration,
 };
 use unicode_segmentation::UnicodeSegmentation;
+use probability::prelude::*;
+
+struct Source<T>(T);
+
+impl<T: rand::RngCore> source::Source for Source<T> {
+    fn read_u64(&mut self) -> u64 {
+        self.0.next_u64()
+    }
+}
 
 const ASCIINEMA_WAIT: &str =
     r#"asciinema: press <ctrl-d> or type "exit" when you're done"#;
@@ -27,6 +36,8 @@ pub struct CinemaOptions {
     pub delay: u64,
     /// Type pragma command.
     pub type_pragma: bool,
+    /// Deviation for gaussian delay modification.
+    pub deviation: f64,
 }
 
 impl Default for CinemaOptions {
@@ -34,6 +45,7 @@ impl Default for CinemaOptions {
         Self {
             delay: 80,
             type_pragma: false,
+            deviation: 5.0,
         }
     }
 }
@@ -145,7 +157,7 @@ impl ScriptFile {
                     p.exp_string(ASCIINEMA_WAIT)?;
                     // Wait for the initial shell prompt to flush
                     sleep(Duration::from_millis(250));
-                    tracing::debug!("asciinema wait completed");
+                    tracing::debug!("asciinema ready");
                 }
 
                 fn type_text(
@@ -156,7 +168,23 @@ impl ScriptFile {
                     for c in UnicodeSegmentation::graphemes(text, true) {
                         p.send(c)?;
                         p.flush()?;
-                        sleep(Duration::from_millis(cinema.delay));
+
+                        let mut source = Source(rand::rngs::OsRng);
+                        let gaussian = Gaussian::new(0.0, cinema.deviation);
+                        let drift = gaussian.sample(&mut source);
+                        
+                        let delay = if (drift as u64) < cinema.delay {
+                            let drift = drift as i64;
+                            if drift < 0 {
+                                cinema.delay - (drift.abs() as u64)
+                            } else {
+                                cinema.delay + drift as u64
+                            }
+                        } else {
+                            cinema.delay + drift.abs() as u64
+                        };
+
+                        sleep(Duration::from_millis(delay));
                     }
                     p.send("\n")?;
                     p.flush()?;
