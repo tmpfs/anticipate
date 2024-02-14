@@ -96,9 +96,10 @@ fn parse_pragma_first_err() -> Result<()> {
 }
 
 #[test]
-fn parse_wait_number() -> Result<()> {
-    let source = "#$ wait foo";
+fn parse_unknown() -> Result<()> {
+    let source = "#$ foobar";
     let result = ScriptParser.parse(source);
-    assert!(matches!(result, Err(Error::NumberExpected(_))));
+    println!("{:#?}", result);
+    assert!(matches!(result, Err(Error::UnknownInstruction(_))));
     Ok(())
 }

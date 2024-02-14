@@ -8,6 +8,15 @@ fn pragma(lex: &mut Lexer<Token>) -> Option<String> {
     Some(value.to_owned())
 }
 
+fn integer(lex: &mut Lexer<Token>) -> Option<u64> {
+    let slice = lex.slice();
+    if let Some(num) = slice.split(" ").last() {
+        num.parse().ok()
+    } else {
+        None
+    }
+}
+
 #[derive(Logos, Debug, PartialEq, Clone)]
 #[logos(error = LexError)]
 enum Token {
@@ -21,14 +30,14 @@ enum Token {
     Expect,
     #[regex("#[$]\\s+regex\\s+")]
     Regex,
-    #[regex("#[$]\\s+wait\\s+")]
-    Wait,
+    #[regex("#[$]\\s+wait\\s+([0-9]+)", callback = integer)]
+    Wait(u64),
     #[regex("#[$]\\s+readline\\s*")]
     ReadLine,
+    #[regex("#[$]", priority = 2)]
+    Command,
     #[regex("#[^$].*", priority = 1)]
     Comment,
-    #[regex("[0-9]+")]
-    Number,
     #[regex("\r?\n")]
     Newline,
     #[regex(".", priority = 0)]
@@ -75,6 +84,10 @@ impl ScriptParser {
             tracing::trace!(token = ?token, "parse");
 
             match token {
+                Token::Command => {
+                    let text = self.parse_text(&mut lex, source, None)?;
+                    return Err(Error::UnknownInstruction(text.to_owned()));
+                }
                 Token::Comment => {
                     let text = self.parse_text(&mut lex, source, None)?;
                     cmd.push(Instruction::Comment(text));
@@ -110,8 +123,7 @@ impl ScriptParser {
                         }
                     }
                 }
-                Token::Wait => {
-                    let num = self.parse_number(&mut lex, source)?;
+                Token::Wait(num) => {
                     cmd.push(Instruction::Wait(num));
                 }
                 // Unhandled text is send line
@@ -120,27 +132,12 @@ impl ScriptParser {
                         self.parse_text(&mut lex, source, Some(span))?;
                     cmd.push(Instruction::SendLine(text));
                 }
-                Token::Number | Token::Newline => {}
+                Token::Newline => {}
             }
             next_token = lex.next();
         }
 
         Ok(cmd)
-    }
-
-    fn parse_number<'s>(
-        &self,
-        lex: &mut Lexer<Token>,
-        source: &'s str,
-    ) -> Result<u64> {
-        let next_token = lex.next();
-        let span = lex.span();
-        let val = &source[span.start..span.end];
-        if let Some(Ok(Token::Number)) = next_token {
-            Ok(val.parse()?)
-        } else {
-            Err(Error::NumberExpected(val.to_owned()))
-        }
     }
 
     fn parse_text<'s>(
@@ -160,7 +157,7 @@ impl ScriptParser {
         while let Some(token) = next_token.take() {
             let token = token?;
             match token {
-                Token::Text | Token::Number => {
+                Token::Text => {
                     finish = lex.span();
                 }
                 _ => break,

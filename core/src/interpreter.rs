@@ -109,13 +109,14 @@ impl InterpreterOptions {
 
 /// Script file.
 pub struct ScriptFile {
+    path: PathBuf,
     source: ScriptSource,
 }
 
 impl ScriptFile {
     /// Path to the source file.
     pub fn path(&self) -> &PathBuf {
-        self.source.borrow_path()
+        &self.path
     }
     
     /// Source contents of the file.
@@ -133,8 +134,6 @@ impl ScriptFile {
 #[derive(Debug)]
 /// Script file.
 pub struct ScriptSource {
-    /// Path to the source file.
-    pub path: PathBuf,
     /// Script source.
     pub source: String,
     /// Parsed instructions.
@@ -151,13 +150,12 @@ impl ScriptFile {
             tracing::info!(path = ?path, "parse file");
             let source = std::fs::read_to_string(&path)?;
             let source = ScriptSourceTryBuilder {
-                path,
                 source,
                 instructions_builder: |source| ScriptParser.parse(source),
             }
             .try_build()?;
 
-            results.push(ScriptFile { source });
+            results.push(ScriptFile { path, source });
         }
         Ok(results)
     }
@@ -297,7 +295,7 @@ impl ScriptFile {
     fn resolve_path(&self, input: &str) -> Result<String> {
         let path = PathBuf::from(input);
         if path.is_relative() {
-            if let Some(parent) = self.source.borrow_path().parent() {
+            if let Some(parent) = self.path.parent() {
                 let new_path = parent.join(input);
                 let path = new_path.canonicalize()?;
                 return Ok(path.to_string_lossy().as_ref().to_owned());
