@@ -91,6 +91,14 @@ pub enum Command {
         #[clap(long, default_value = "2")]
         trim_lines: u64,
 
+        /// Number of terminal columns.
+        #[clap(long, default_value = "80")]
+        cols: u64,
+
+        /// Number of terminal rows.
+        #[clap(long, default_value = "24")]
+        rows: u64,
+
         /// Directory for recordings.
         output: PathBuf,
 
@@ -138,6 +146,8 @@ fn start() -> Result<()> {
             shell,
             type_pragma,
             trim_lines,
+            cols,
+            rows,
             deviation,
             logs,
         } => {
@@ -164,6 +174,8 @@ fn start() -> Result<()> {
                     shell: shell.clone(),
                     type_pragma,
                     deviation,
+                    cols,
+                    rows,
                 };
 
                 let options = InterpreterOptions::new_recording(

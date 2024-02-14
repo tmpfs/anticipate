@@ -33,6 +33,10 @@ pub struct CinemaOptions {
     pub prompt: String,
     /// Shell to run.
     pub shell: String,
+    /// Terminal columns.
+    pub cols: u64,
+    /// Terminal rows.
+    pub rows: u64,
 }
 
 impl Default for CinemaOptions {
@@ -43,6 +47,8 @@ impl Default for CinemaOptions {
             deviation: 5.0,
             prompt: "➜ ".to_string(),
             shell: "sh -noprofile -norc".to_string(),
+            cols: 80,
+            rows: 24,
         }
     }
 }
@@ -89,6 +95,8 @@ impl InterpreterOptions {
         if overwrite {
             command.push_str(" --overwrite");
         }
+        command.push_str(&format!(" --rows={}", options.rows));
+        command.push_str(&format!(" --cols={}", options.cols));
         Self {
             command,
             timeout: Some(timeout),
