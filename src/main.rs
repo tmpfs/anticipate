@@ -88,7 +88,7 @@ pub enum Command {
         type_pragma: bool,
 
         /// Number of lines to trim from end of recording.
-        #[clap(long, default_value = "3")]
+        #[clap(long, default_value = "2")]
         trim_lines: u64,
 
         /// Directory for recordings.

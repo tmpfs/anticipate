@@ -23,6 +23,8 @@ enum Token {
     Regex,
     #[regex("#[$]\\s+wait\\s+")]
     Wait,
+    #[regex("#[$]\\s+readline\\s*")]
+    ReadLine,
     #[regex("#[^$].*", priority = 1)]
     Comment,
     #[regex("[0-9]+")]
@@ -50,6 +52,8 @@ pub enum Instruction<'s> {
     Wait(u64),
     /// Comment text.
     Comment(&'s str),
+    /// Read a line of output.
+    ReadLine,
 }
 
 /// Sequence of commands to execute.
@@ -73,6 +77,9 @@ impl ScriptParser {
                 Token::Comment => {
                     let text = self.parse_text(&mut lex, source, None)?;
                     cmd.push(Instruction::Comment(text));
+                }
+                Token::ReadLine => {
+                    cmd.push(Instruction::ReadLine);
                 }
                 Token::Pragma(pragma) => {
                     if !cmd.is_empty() {

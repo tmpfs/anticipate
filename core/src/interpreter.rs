@@ -239,6 +239,9 @@ impl ScriptFile {
                         Instruction::Regex(line) => {
                             p.exp_regex(line)?;
                         }
+                        Instruction::ReadLine => {
+                            p.read_line()?;
+                        }
                         Instruction::Comment(_) => {}
                     }
                     sleep(Duration::from_millis(25));
