@@ -1,3 +1,7 @@
+//! Script automation tool with support for recording
+//! using [asciinema](https://asciinema.org/).
+//!
+//! For programmatic access use the [anticipate-core](https://docs.rs/anticipate-core) crate, see [the repository](https://github.com/tmpfs/anticipate/) for examples.
 use anticipate_core::{CinemaOptions, InterpreterOptions, ScriptFile};
 use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
@@ -10,8 +14,10 @@ use std::{
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+#[doc(hidden)]
 const LOG_FILE_NAME: &str = "anticipate.log";
 
+#[doc(hidden)]
 fn main() -> Result<()> {
     if let Err(e) = start() {
         tracing::error!(error = ?e);
@@ -20,6 +26,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+#[doc(hidden)]
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 pub struct Anticipate {
@@ -27,6 +34,7 @@ pub struct Anticipate {
     cmd: Command,
 }
 
+#[doc(hidden)]
 #[derive(Debug, Subcommand)]
 pub enum Command {
     /// Parse scripts and print the instructions.
@@ -107,6 +115,7 @@ pub enum Command {
     },
 }
 
+#[doc(hidden)]
 fn start() -> Result<()> {
     let args = Anticipate::parse();
     match args.cmd {
@@ -196,7 +205,8 @@ fn start() -> Result<()> {
     Ok(())
 }
 
-pub fn init_subscriber(
+#[doc(hidden)]
+fn init_subscriber(
     logs_dir: PathBuf,
     default_log_level: Option<String>,
 ) -> Result<()> {
@@ -229,6 +239,7 @@ pub fn init_subscriber(
     Ok(())
 }
 
+#[doc(hidden)]
 fn trim_exit(filename: impl AsRef<Path>, trim_lines: u64) -> io::Result<()> {
     let mut file = File::open(filename.as_ref())?;
     let file_size = file.seek(SeekFrom::End(0))?;
