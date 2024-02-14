@@ -18,6 +18,9 @@ pub enum Error {
     #[error("number expected, but got '{0}'")]
     NumberExpected(String),
 
+    #[error("pragma declaration ($!) must be the first instruction")]
+    PragmaFirst,
+
     #[error(transparent)]
     Io(#[from] std::io::Error),
 

@@ -2,11 +2,17 @@ use crate::{error::LexError, Error, Result};
 use logos::{Lexer, Logos};
 use std::ops::Range;
 
-#[derive(Logos, Debug, PartialEq, Copy, Clone)]
+fn pragma(lex: &mut Lexer<Token>) -> Option<String> {
+    let slice = lex.slice();
+    let value = &slice[2..];
+    Some(value.to_owned())
+}
+
+#[derive(Logos, Debug, PartialEq, Clone)]
 #[logos(error = LexError)]
 enum Token {
-    #[regex("#!")]
-    Pragma,
+    #[regex("#![^\n]+", callback = pragma)]
+    Pragma(String),
     #[regex("#[$]\\s+sendline\\s+")]
     SendLine,
     #[regex("#[$]\\s+sendcontrol\\s+")]
@@ -17,6 +23,8 @@ enum Token {
     Regex,
     #[regex("#[$]\\s+wait\\s+")]
     Wait,
+    #[regex("#[^$].*", priority = 1)]
+    Comment,
     #[regex("[0-9]+")]
     Number,
     #[regex("\r?\n")]
@@ -29,7 +37,7 @@ enum Token {
 #[derive(Debug)]
 pub enum Instruction<'s> {
     /// Program to execute.
-    Pragma(&'s str),
+    Pragma(String),
     /// Send a line of text.
     SendLine(&'s str),
     /// Send a control character.
@@ -40,6 +48,8 @@ pub enum Instruction<'s> {
     Regex(&'s str),
     /// Wait a while.
     Wait(u64),
+    /// Comment text.
+    Comment(&'s str),
 }
 
 /// Sequence of commands to execute.
@@ -60,9 +70,15 @@ impl ScriptParser {
             tracing::trace!(token = ?token, "parse");
 
             match token {
-                Token::Pragma => {
+                Token::Comment => {
                     let text = self.parse_text(&mut lex, source, None)?;
-                    cmd.push(Instruction::Pragma(text));
+                    cmd.push(Instruction::Comment(text));
+                }
+                Token::Pragma(pragma) => {
+                    if !cmd.is_empty() {
+                        return Err(Error::PragmaFirst);
+                    }
+                    cmd.push(Instruction::Pragma(pragma));
                 }
                 Token::SendLine => {
                     let text = self.parse_text(&mut lex, source, None)?;
@@ -96,7 +112,7 @@ impl ScriptParser {
                         self.parse_text(&mut lex, source, Some(span))?;
                     cmd.push(Instruction::SendLine(text));
                 }
-                _ => {}
+                Token::Number | Token::Newline => {}
             }
             next_token = lex.next();
         }

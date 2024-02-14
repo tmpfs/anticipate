@@ -239,6 +239,7 @@ impl ScriptFile {
                         Instruction::Regex(line) => {
                             p.exp_regex(line)?;
                         }
+                        Instruction::Comment(_) => {}
                     }
                     sleep(Duration::from_millis(25));
                 }
