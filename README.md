@@ -16,9 +16,10 @@ To record using [asciinema][] writing a `.cast` file for each input file into th
 
 ```
 anticipate \
-  --logs target \
-  --record target \
+  record \
   --overwrite \
+  --logs target \
+  target \
   test/fixtures/*.sh
 ```
 

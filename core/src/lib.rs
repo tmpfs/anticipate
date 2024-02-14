@@ -1,9 +1,9 @@
-mod compiler;
 mod error;
+mod interpreter;
 mod parser;
 
-pub use compiler::{CompileOptions, ScriptFile};
 pub use error::Error;
+pub use interpreter::{CompileOptions, ScriptFile};
 pub use parser::*;
 
 /// Result type for the parser.

@@ -1,9 +1,9 @@
 use crate::{Error, Instruction, Instructions, Result, ScriptParser};
 use ouroboros::self_referencing;
-use rexpect::{session::PtySession, spawn, ReadUntil};
+use rexpect::{session::PtySession, spawn};
 use std::{
     path::{Path, PathBuf},
-    thread::{self, sleep, ScopedJoinHandle},
+    thread::{self, sleep},
     time::Duration,
 };
 use unicode_segmentation::UnicodeSegmentation;
@@ -30,8 +30,10 @@ pub struct CinemaOptions {
 
 impl CompileOptions {
     pub fn new_recording(output: impl AsRef<Path>, overwrite: bool) -> Self {
-        let mut command =
-            format!("asciinema rec {:#?}", output.as_ref().to_string_lossy());
+        let mut command = format!(
+            "asciinema rec {:#?}",
+            output.as_ref().to_string_lossy(),
+        );
         if overwrite {
             command.push_str(" --overwrite");
         }
@@ -80,7 +82,7 @@ impl ScriptFile {
                 instructions_builder: |source| ScriptParser.parse(source),
             }
             .build();
-            
+
             if let Err(e) = script.borrow_instructions() {
                 return Err(Error::Message(e.to_string()));
             }
@@ -97,13 +99,33 @@ impl ScriptFile {
 
             let handle = s.spawn(move || {
                 let prompt = "➜ ";
-                if options.cinema.is_some() {
-                    let shell = format!("PS1='{}' sh -noprofile -norc", prompt);
+                let instructions =
+                    self.borrow_instructions().as_ref().unwrap();
+                let is_cinema = options.cinema.is_some();
+
+                if is_cinema {
+                    // Export a vanilla shell for asciinema
+                    let shell =
+                        format!("PS1='{}' sh -noprofile -norc", prompt);
                     std::env::set_var("SHELL", &shell);
                 }
 
-                tracing::info!(cmd = %cmd, "run");
-                let mut p = spawn(&cmd, options.timeout)?;
+                let pragma = if let Some(Instruction::Pragma(cmd)) =
+                    instructions.first()
+                {
+                    Some(self.resolve_path(cmd)?)
+                } else {
+                    None
+                };
+
+                let exec = if let (false, Some(cmd)) = (is_cinema, &pragma) {
+                    cmd
+                } else {
+                    &cmd
+                };
+
+                tracing::info!(exec = %exec, "run");
+                let mut p = spawn(exec, options.timeout)?;
 
                 if options.cinema.is_some() {
                     p.exp_string(ASCIINEMA_WAIT)?;
@@ -127,11 +149,16 @@ impl ScriptFile {
                     Ok(())
                 }
 
-                let instructions =
-                    self.borrow_instructions().as_ref().unwrap();
                 for cmd in instructions.iter() {
                     tracing::debug!(instruction = ?cmd);
                     match cmd {
+                        Instruction::Pragma(_) => {
+                            if let (Some(cinema), Some(cmd)) =
+                                (&options.cinema, &pragma)
+                            {
+                                type_text(&mut p, &cmd, cinema)?;
+                            }
+                        }
                         Instruction::Wait(delay) => {
                             sleep(Duration::from_millis(*delay));
                         }
@@ -151,11 +178,10 @@ impl ScriptFile {
                         Instruction::Regex(line) => {
                             p.exp_regex(line)?;
                         }
-                        _ => {}
                     }
                     sleep(Duration::from_millis(25));
                 }
-                
+
                 if options.cinema.is_some() {
                     tracing::debug!("exit");
                     p.send_line(EXIT)?;
@@ -172,5 +198,17 @@ impl ScriptFile {
                 eprintln!("{:#?}", e);
             }
         });
+    }
+
+    fn resolve_path(&self, input: &str) -> Result<String> {
+        let path = PathBuf::from(input);
+        if path.is_relative() {
+            if let Some(parent) = self.borrow_path().parent() {
+                let new_path = parent.join(input);
+                let path = new_path.canonicalize()?;
+                return Ok(path.to_string_lossy().as_ref().to_owned());
+            }
+        }
+        Ok(input.to_owned())
     }
 }

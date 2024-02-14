@@ -1,9 +1,9 @@
 use anticipate_core::{CompileOptions, ScriptFile};
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 const LOG_FILE_NAME: &str = "anticipate.log";
 
@@ -24,49 +24,97 @@ pub struct Anticipate {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Run a single script.
+    /// Parse scripts and print the instructions.
+    Parse {
+        /// Directory to write logs.
+        #[clap(short, long)]
+        logs: Option<PathBuf>,
+
+        /// Input file paths.
+        input: Vec<PathBuf>,
+    },
+    /// Run a scripts.
     Run {
         /// Directory to write logs.
         #[clap(short, long)]
         logs: Option<PathBuf>,
 
-        /// Directory for recordings.
+        /// Input file paths.
+        input: Vec<PathBuf>,
+    },
+
+    /// Record using asciinema.
+    Record {
+        /// Directory to write logs.
         #[clap(short, long)]
-        record: Option<PathBuf>,
+        logs: Option<PathBuf>,
 
         /// Overwrite existing recordings.
         #[clap(short, long)]
         overwrite: bool,
-        
+
+        /// Directory for recordings.
+        output: PathBuf,
+
         /// Input file paths.
-        paths: Vec<PathBuf>,
+        input: Vec<PathBuf>,
     },
 }
 
 fn start() -> Result<()> {
     let args = Anticipate::parse();
     match args.cmd {
-        Command::Run { record, overwrite, paths, logs } => {
+        Command::Parse { input, logs } => {
             if let Some(logs) = logs {
                 init_subscriber(logs, None)?;
             }
 
-            let scripts = ScriptFile::parse_files(paths)?;
+            let scripts = ScriptFile::parse_files(input)?;
+            for script in scripts {
+                println!(
+                    "{:#?}",
+                    script.borrow_instructions().as_ref().unwrap()
+                );
+            }
+        }
+        Command::Run { input, logs } => {
+            if let Some(logs) = logs {
+                init_subscriber(logs, None)?;
+            }
+
+            let scripts = ScriptFile::parse_files(input)?;
+            for script in scripts {
+                script.run(Default::default());
+            }
+        }
+        Command::Record {
+            overwrite,
+            output,
+            input,
+            logs,
+        } => {
+            if let Some(logs) = logs {
+                init_subscriber(logs, None)?;
+            }
+
+            let scripts = ScriptFile::parse_files(input)?;
             for script in scripts {
                 //println!("{:#?}", script.borrow_instructions());
-                let options = if let Some(record) = &record {
-                    let file_name = script.borrow_path().file_name().unwrap();
-                    let mut output_file = record.join(file_name);
-                    output_file.set_extension("cast");
-                    
-                    if !overwrite && output_file.exists() {
-                        bail!("file {} already exists, use --overwrite to replace", output_file.to_string_lossy());
-                    }
 
-                    CompileOptions::new_recording(output_file, overwrite)
-                } else {
-                    Default::default()
-                };
+                let file_name = script.borrow_path().file_name().unwrap();
+                let mut output_file = output.join(file_name);
+                output_file.set_extension("cast");
+
+                if !overwrite && output_file.exists() {
+                    bail!(
+                        "file {} already exists, use --overwrite to replace",
+                        output_file.to_string_lossy(),
+                    );
+                }
+
+                let options =
+                    CompileOptions::new_recording(output_file, overwrite);
+
                 script.run(options);
             }
         }
@@ -74,7 +122,10 @@ fn start() -> Result<()> {
     Ok(())
 }
 
-pub fn init_subscriber(logs_dir: PathBuf, default_log_level: Option<String>) -> Result<()> {
+pub fn init_subscriber(
+    logs_dir: PathBuf,
+    default_log_level: Option<String>,
+) -> Result<()> {
     let logfile =
         RollingFileAppender::new(Rotation::DAILY, logs_dir, LOG_FILE_NAME);
 
