@@ -2,6 +2,11 @@ use anticipate_core::{CinemaOptions, InterpreterOptions, ScriptFile};
 use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+use std::{
+    fs::{File, OpenOptions},
+    io::{self, Read, Seek, SeekFrom},
+    path::Path,
+};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -48,6 +53,7 @@ pub enum Command {
     },
 
     /// Record using asciinema.
+    #[clap(alias = "rec")]
     Record {
         /// Directory to write logs.
         #[clap(short, long)]
@@ -68,7 +74,7 @@ pub enum Command {
         /// Standard deviation for gaussian distribution.
         #[clap(long, default_value = "5.0")]
         deviation: f64,
-        
+
         /// Prompt for the shell.
         #[clap(long, default_value = "➜ ")]
         prompt: String,
@@ -80,6 +86,10 @@ pub enum Command {
         /// Type pragma commands.
         #[clap(long)]
         type_pragma: bool,
+
+        /// Number of lines to trim from end of recording.
+        #[clap(long, default_value = "3")]
+        trim_lines: u64,
 
         /// Directory for recordings.
         output: PathBuf,
@@ -104,7 +114,11 @@ fn start() -> Result<()> {
                 );
             }
         }
-        Command::Run { input, timeout, logs } => {
+        Command::Run {
+            input,
+            timeout,
+            logs,
+        } => {
             if let Some(logs) = logs {
                 init_subscriber(logs, None)?;
             }
@@ -123,6 +137,7 @@ fn start() -> Result<()> {
             prompt,
             shell,
             type_pragma,
+            trim_lines,
             deviation,
             logs,
         } => {
@@ -152,13 +167,17 @@ fn start() -> Result<()> {
                 };
 
                 let options = InterpreterOptions::new_recording(
-                    output_file,
+                    output_file.clone(),
                     overwrite,
                     cinema,
                     timeout,
                 );
 
                 script.run(options);
+
+                if trim_lines > 0 {
+                    trim_exit(&output_file, trim_lines)?;
+                }
             }
         }
     }
@@ -194,6 +213,54 @@ pub fn init_subscriber(
         .with(fmt_layer)
         .with(file_layer)
         .try_init()?;
+
+    Ok(())
+}
+
+fn trim_exit(filename: impl AsRef<Path>, trim_lines: u64) -> io::Result<()> {
+    let mut file = File::open(filename.as_ref())?;
+    let file_size = file.seek(SeekFrom::End(0))?;
+    let mut cursor = file_size;
+    let mut bytes_read = 0;
+    let mut num_lines = 0;
+
+    // Read backwards and count newlines
+    loop {
+        if cursor > 0 {
+            cursor -= 1;
+            file.seek(SeekFrom::Start(cursor))?;
+        } else {
+            break;
+        }
+
+        let mut buf = [0; 1];
+        let byte = file.read_exact(&mut buf);
+        if byte.is_err() {
+            break;
+        }
+
+        if &buf == b"\n" {
+            num_lines += 1;
+        }
+
+        if num_lines == trim_lines + 1 {
+            break;
+        }
+
+        bytes_read += 1;
+    }
+
+    // Truncate the file
+    if bytes_read < file_size {
+        let file = OpenOptions::new().write(true).open(filename.as_ref())?;
+        let new_len = file_size - bytes_read;
+        tracing::debug!(
+            len = %new_len,
+            file = ?filename.as_ref(),
+            "truncate",
+        );
+        file.set_len(new_len)?;
+    }
 
     Ok(())
 }

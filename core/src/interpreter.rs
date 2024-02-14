@@ -1,5 +1,6 @@
 use crate::{Error, Instruction, Instructions, Result, ScriptParser};
 use ouroboros::self_referencing;
+use probability::prelude::*;
 use rexpect::{session::PtySession, spawn};
 use std::{
     path::{Path, PathBuf},
@@ -7,7 +8,6 @@ use std::{
     time::Duration,
 };
 use unicode_segmentation::UnicodeSegmentation;
-use probability::prelude::*;
 
 struct Source<T>(T);
 
@@ -187,7 +187,7 @@ impl ScriptFile {
                         let mut source = Source(rand::rngs::OsRng);
                         let gaussian = Gaussian::new(0.0, cinema.deviation);
                         let drift = gaussian.sample(&mut source);
-                        
+
                         let delay = if (drift as u64) < cinema.delay {
                             let drift = drift as i64;
                             if drift < 0 {
