@@ -59,6 +59,7 @@ pub enum Instruction<'s> {
 /// Sequence of commands to execute.
 pub type Instructions<'s> = Vec<Instruction<'s>>;
 
+/// Parser for scripts.
 #[derive(Debug)]
 pub struct ScriptParser;
 

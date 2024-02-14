@@ -1,3 +1,7 @@
+//! Parser and interpreter for the anticipate script automation tool.
+#![deny(missing_docs)]
+#![forbid(unsafe_code)]
+
 mod error;
 mod interpreter;
 mod parser;

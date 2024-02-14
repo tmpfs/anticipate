@@ -74,6 +74,7 @@ impl Default for InterpreterOptions {
 }
 
 impl InterpreterOptions {
+    /// Create interpreter options.
     pub fn new(timeout: u64) -> Self {
         Self {
             command: "sh".to_owned(),
@@ -82,6 +83,7 @@ impl InterpreterOptions {
         }
     }
 
+    /// Create interpreter options for asciinema recording.
     pub fn new_recording(
         output: impl AsRef<Path>,
         overwrite: bool,
@@ -105,9 +107,9 @@ impl InterpreterOptions {
     }
 }
 
-/// Script file.
 #[self_referencing]
 #[derive(Debug)]
+/// Script file.
 pub struct ScriptFile {
     /// Path to the source file.
     pub path: PathBuf,
