@@ -31,9 +31,10 @@ See the progam help for more options.
 
 * [pragma](#pragma) - `#!`
 * [sendline](#send-line) - `#$ sendline ls -la`
+* [sendcontrol](#send-control) - `#$ sendcontrol c`
 * [expect](#expect) - `#$ expect Documents`
 * [regex](#regex) - `#$ regex [0-9]`
-* [sendcontrol](#send-control) - `#$ sendcontrol c`
+* [readline](#read-line) - `#$ readline`
 * [wait](#wait) - `#$ wait 500`
 
 The syntax is inspired by [asciinema-automation](https://github.com/PierreMarchand20/asciinema_automation/).
@@ -66,6 +67,14 @@ Or you can use the sendline command explicitly:
 #$ sendline ls -la
 ```
 
+### Send Control
+
+To send a control character, for example Ctrl+C:
+
+```
+#$ sendcontrol c
+```
+
 ### Expect
 
 Expect waits for a string to appear in the program output:
@@ -82,12 +91,12 @@ To wait for a pattern to appear in the program output use `regex`:
 #$ regex [0-9]
 ```
 
-### Send Control
+### Read Line
 
-To send a control character, for example Ctrl+C:
+Read a line of program output:
 
 ```
-#$ sendcontrol c
+#$ readline
 ```
 
 ### Wait
