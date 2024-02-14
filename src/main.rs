@@ -1,4 +1,4 @@
-use anticipate_core::{CompileOptions, ScriptFile};
+use anticipate_core::{CinemaOptions, InterpreterOptions, ScriptFile};
 use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
@@ -33,7 +33,7 @@ pub enum Command {
         /// Input file paths.
         input: Vec<PathBuf>,
     },
-    /// Run a scripts.
+    /// Run scripts.
     Run {
         /// Directory to write logs.
         #[clap(short, long)]
@@ -52,6 +52,14 @@ pub enum Command {
         /// Overwrite existing recordings.
         #[clap(short, long)]
         overwrite: bool,
+
+        /// Delay between keystrokes.
+        #[clap(short, long)]
+        delay: u64,
+
+        /// Type pragma commands.
+        #[clap(long)]
+        type_pragma: bool,
 
         /// Directory for recordings.
         output: PathBuf,
@@ -91,6 +99,8 @@ fn start() -> Result<()> {
             overwrite,
             output,
             input,
+            delay,
+            type_pragma,
             logs,
         } => {
             if let Some(logs) = logs {
@@ -99,8 +109,6 @@ fn start() -> Result<()> {
 
             let scripts = ScriptFile::parse_files(input)?;
             for script in scripts {
-                //println!("{:#?}", script.borrow_instructions());
-
                 let file_name = script.borrow_path().file_name().unwrap();
                 let mut output_file = output.join(file_name);
                 output_file.set_extension("cast");
@@ -112,8 +120,16 @@ fn start() -> Result<()> {
                     );
                 }
 
-                let options =
-                    CompileOptions::new_recording(output_file, overwrite);
+                let cinema = CinemaOptions {
+                    delay,
+                    type_pragma,
+                };
+
+                let options = InterpreterOptions::new_recording(
+                    output_file,
+                    overwrite,
+                    cinema,
+                );
 
                 script.run(options);
             }

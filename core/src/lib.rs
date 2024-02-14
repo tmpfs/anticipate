@@ -3,7 +3,7 @@ mod interpreter;
 mod parser;
 
 pub use error::Error;
-pub use interpreter::{CompileOptions, ScriptFile};
+pub use interpreter::{CinemaOptions, InterpreterOptions, ScriptFile};
 pub use parser::*;
 
 /// Result type for the parser.

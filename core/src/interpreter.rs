@@ -13,7 +13,7 @@ const ASCIINEMA_WAIT: &str =
 const EXIT: &str = "exit";
 
 /// Options for compilation.
-pub struct CompileOptions {
+pub struct InterpreterOptions {
     /// Command to execute in the pty.
     pub command: String,
     /// Timeout for rexpect.
@@ -22,14 +22,28 @@ pub struct CompileOptions {
     pub cinema: Option<CinemaOptions>,
 }
 
-#[derive(Default)]
 pub struct CinemaOptions {
     /// Delay in milliseconds.
     pub delay: u64,
+    /// Type pragma command.
+    pub type_pragma: bool,
 }
 
-impl CompileOptions {
-    pub fn new_recording(output: impl AsRef<Path>, overwrite: bool) -> Self {
+impl Default for CinemaOptions {
+    fn default() -> Self {
+        Self {
+            delay: 80,
+            type_pragma: false,
+        }
+    }
+}
+
+impl InterpreterOptions {
+    pub fn new_recording(
+        output: impl AsRef<Path>,
+        overwrite: bool,
+        options: CinemaOptions,
+    ) -> Self {
         let mut command = format!(
             "asciinema rec {:#?}",
             output.as_ref().to_string_lossy(),
@@ -40,12 +54,12 @@ impl CompileOptions {
         Self {
             command,
             timeout: Some(5000),
-            cinema: Some(CinemaOptions { delay: 80 }),
+            cinema: Some(options),
         }
     }
 }
 
-impl Default for CompileOptions {
+impl Default for InterpreterOptions {
     fn default() -> Self {
         Self {
             command: "sh".to_owned(),
@@ -93,7 +107,7 @@ impl ScriptFile {
     }
 
     /// Execute the pty command and instructions in a thread.
-    pub fn run(&self, options: CompileOptions) {
+    pub fn run(&self, options: InterpreterOptions) {
         thread::scope(|s| {
             let cmd = options.command.clone();
 
@@ -156,7 +170,11 @@ impl ScriptFile {
                             if let (Some(cinema), Some(cmd)) =
                                 (&options.cinema, &pragma)
                             {
-                                type_text(&mut p, &cmd, cinema)?;
+                                if cinema.type_pragma {
+                                    type_text(&mut p, &cmd, cinema)?;
+                                } else {
+                                    p.send_line(&cmd)?;
+                                }
                             }
                         }
                         Instruction::Wait(delay) => {

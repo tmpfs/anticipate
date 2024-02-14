@@ -10,6 +10,7 @@ rexpect = "0.5"
 ouroboros = "0.18"
 tracing = "0.1"
 unicode-segmentation = "1"
+probability = "0.20"
 
 [dev-dependencies]
 anyhow = "1"
