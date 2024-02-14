@@ -2,7 +2,8 @@
 name = "anticipate"
 version = "0.1.0"
 edition = "2021"
-description = "Script runner for rexpect with asciinema support"
+description = "Script runner with asciinema support"
+license = "MIT OR Apache-2.0"
 
 [workspace]
 members = ["core"]

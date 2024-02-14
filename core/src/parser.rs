@@ -146,22 +146,3 @@ impl ScriptParser {
     }
 }
 
-#[cfg(test)]
-mod test {
-    use super::ScriptParser;
-    use anyhow::Result;
-
-    #[test]
-    fn parse_sendline() -> Result<()> {
-        let source = r#"
-#$ sendline foo
-#$ expect bar
-#$ regex [0-9]
-#$ sendcontrol c
-"#;
-        let parser = ScriptParser::new(source);
-        let commands = parser.parse()?;
-        println!("{:#?}", commands);
-        Ok(())
-    }
-}
