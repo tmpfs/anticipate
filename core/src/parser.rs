@@ -135,10 +135,11 @@ impl ScriptParser {
         let mut next_token = lex.next();
         while let Some(token) = next_token.take() {
             let token = token?;
-            if let Token::Text = token {
-                finish = lex.span();
-            } else {
-                break;
+            match token {
+                Token::Text | Token::Number => {
+                    finish = lex.span();
+                }
+                _ => break,
             }
             next_token = lex.next();
         }
