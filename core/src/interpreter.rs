@@ -38,6 +38,10 @@ pub struct CinemaOptions {
     pub type_pragma: bool,
     /// Deviation for gaussian delay modification.
     pub deviation: f64,
+    /// Prompt for the shell.
+    pub prompt: String,
+    /// Shell to run.
+    pub shell: String,
 }
 
 impl Default for CinemaOptions {
@@ -46,6 +50,8 @@ impl Default for CinemaOptions {
             delay: 80,
             type_pragma: false,
             deviation: 5.0,
+            prompt: "➜ ".to_string(),
+            shell: "sh -noprofile -norc".to_string(),
         }
     }
 }
@@ -124,15 +130,14 @@ impl ScriptFile {
             let cmd = options.command.clone();
 
             let handle = s.spawn(move || {
-                let prompt = "➜ ";
                 let instructions =
                     self.borrow_instructions().as_ref().unwrap();
                 let is_cinema = options.cinema.is_some();
 
-                if is_cinema {
+                if let Some(cinema) = &options.cinema {
                     // Export a vanilla shell for asciinema
                     let shell =
-                        format!("PS1='{}' sh -noprofile -norc", prompt);
+                        format!("PS1='{}' {}", cinema.prompt, cinema.shell);
                     std::env::set_var("SHELL", &shell);
                 }
 

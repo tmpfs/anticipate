@@ -60,6 +60,14 @@ pub enum Command {
         /// Standard deviation for gaussian distribution.
         #[clap(long, default_value = "5.0")]
         deviation: f64,
+        
+        /// Prompt for the shell.
+        #[clap(long, default_value = "➜ ")]
+        prompt: String,
+
+        /// Shell command.
+        #[clap(long, default_value = "sh -noprofile -norc")]
+        shell: String,
 
         /// Type pragma commands.
         #[clap(long)]
@@ -104,6 +112,8 @@ fn start() -> Result<()> {
             output,
             input,
             delay,
+            prompt,
+            shell,
             type_pragma,
             deviation,
             logs,
@@ -127,6 +137,8 @@ fn start() -> Result<()> {
 
                 let cinema = CinemaOptions {
                     delay,
+                    prompt: prompt.clone(),
+                    shell: shell.clone(),
                     type_pragma,
                     deviation,
                 };
