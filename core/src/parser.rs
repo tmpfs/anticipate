@@ -34,9 +34,9 @@ enum Token {
     Wait(u64),
     #[regex("#[$]\\s+readline\\s*")]
     ReadLine,
-    #[regex("#[$]", priority = 2)]
+    #[regex("#[$].", priority = 2)]
     Command,
-    #[regex("#[^$].*", priority = 1)]
+    #[regex("#[^$].", priority = 1)]
     Comment,
     #[regex("\r?\n")]
     Newline,
@@ -82,7 +82,6 @@ impl ScriptParser {
             let token = token?;
             let span = lex.span();
             tracing::trace!(token = ?token, "parse");
-
             match token {
                 Token::Command => {
                     let text = self.parse_text(&mut lex, source, None)?;
@@ -103,6 +102,7 @@ impl ScriptParser {
                 }
                 Token::SendLine => {
                     let text = self.parse_text(&mut lex, source, None)?;
+                        
                     cmd.push(Instruction::SendLine(text));
                 }
                 Token::Expect => {
@@ -130,6 +130,9 @@ impl ScriptParser {
                 Token::Text => {
                     let text =
                         self.parse_text(&mut lex, source, Some(span))?;
+                    if text.starts_with("#$") {
+                        return Err(Error::UnknownInstruction(text.to_owned()));
+                    }
                     cmd.push(Instruction::SendLine(text));
                 }
                 Token::Newline => {}

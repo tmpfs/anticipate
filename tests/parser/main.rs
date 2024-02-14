@@ -39,6 +39,15 @@ fn parse_sendline_raw() -> Result<()> {
 }
 
 #[test]
+fn parse_sendline_raw_numeric() -> Result<()> {
+    let source = "2";
+    let instructions = ScriptParser.parse(source)?;
+    assert_eq!(1, instructions.len());
+    assert!(matches!(instructions.first(), Some(Instruction::SendLine(_))));
+    Ok(())
+}
+
+#[test]
 fn parse_expect() -> Result<()> {
     let source = "#$ expect bar";
     let instructions = ScriptParser.parse(source)?;
@@ -99,7 +108,31 @@ fn parse_pragma_first_err() -> Result<()> {
 fn parse_unknown() -> Result<()> {
     let source = "#$ foobar";
     let result = ScriptParser.parse(source);
-    println!("{:#?}", result);
     assert!(matches!(result, Err(Error::UnknownInstruction(_))));
+
+    if let Err(Error::UnknownInstruction(cmd)) = result {
+        assert_eq!("foobar", cmd);
+    } else {
+        panic!("expected unknown instruction error");
+    }
+    Ok(())
+}
+
+#[test]
+fn parse_unknown_empty() -> Result<()> {
+    let source = "#$";
+    let result = ScriptParser.parse(source);
+
+    println!("{:#?}", result);
+
+    /*
+    assert!(matches!(result, Err(Error::UnknownInstruction(_))));
+
+    if let Err(Error::UnknownInstruction(cmd)) = result {
+        assert_eq!("foobar", cmd);
+    } else {
+        panic!("expected unknown instruction error");
+    }
+    */
     Ok(())
 }
