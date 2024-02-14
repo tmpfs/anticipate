@@ -21,16 +21,7 @@ const ASCIINEMA_WAIT: &str =
     r#"asciinema: press <ctrl-d> or type "exit" when you're done"#;
 const EXIT: &str = "exit";
 
-/// Options for compilation.
-pub struct InterpreterOptions {
-    /// Command to execute in the pty.
-    pub command: String,
-    /// Timeout for rexpect.
-    pub timeout: Option<u64>,
-    /// Options for asciinema.
-    pub cinema: Option<CinemaOptions>,
-}
-
+/// Options for asciinema execution.
 pub struct CinemaOptions {
     /// Delay in milliseconds.
     pub delay: u64,
@@ -56,11 +47,40 @@ impl Default for CinemaOptions {
     }
 }
 
+/// Options for the interpreter.
+pub struct InterpreterOptions {
+    /// Command to execute in the pty.
+    pub command: String,
+    /// Timeout for rexpect.
+    pub timeout: Option<u64>,
+    /// Options for asciinema.
+    pub cinema: Option<CinemaOptions>,
+}
+
+impl Default for InterpreterOptions {
+    fn default() -> Self {
+        Self {
+            command: "sh".to_owned(),
+            timeout: Some(5000),
+            cinema: None,
+        }
+    }
+}
+
 impl InterpreterOptions {
+    pub fn new(timeout: u64) -> Self {
+        Self {
+            command: "sh".to_owned(),
+            timeout: Some(timeout),
+            cinema: None,
+        }
+    }
+
     pub fn new_recording(
         output: impl AsRef<Path>,
         overwrite: bool,
         options: CinemaOptions,
+        timeout: u64,
     ) -> Self {
         let mut command = format!(
             "asciinema rec {:#?}",
@@ -71,18 +91,8 @@ impl InterpreterOptions {
         }
         Self {
             command,
-            timeout: Some(5000),
+            timeout: Some(timeout),
             cinema: Some(options),
-        }
-    }
-}
-
-impl Default for InterpreterOptions {
-    fn default() -> Self {
-        Self {
-            command: "sh".to_owned(),
-            timeout: Some(5000),
-            cinema: None,
         }
     }
 }

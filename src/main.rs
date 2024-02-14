@@ -39,6 +39,10 @@ pub enum Command {
         #[clap(short, long)]
         logs: Option<PathBuf>,
 
+        /// Timeout for the pseudo-terminal.
+        #[clap(short, long, default_value = "5000")]
+        timeout: u64,
+
         /// Input file paths.
         input: Vec<PathBuf>,
     },
@@ -48,6 +52,10 @@ pub enum Command {
         /// Directory to write logs.
         #[clap(short, long)]
         logs: Option<PathBuf>,
+
+        /// Timeout for the pseudo-terminal.
+        #[clap(short, long, default_value = "5000")]
+        timeout: u64,
 
         /// Overwrite existing recordings.
         #[clap(short, long)]
@@ -88,7 +96,6 @@ fn start() -> Result<()> {
             if let Some(logs) = logs {
                 init_subscriber(logs, None)?;
             }
-
             let scripts = ScriptFile::parse_files(input)?;
             for script in scripts {
                 println!(
@@ -97,20 +104,21 @@ fn start() -> Result<()> {
                 );
             }
         }
-        Command::Run { input, logs } => {
+        Command::Run { input, timeout, logs } => {
             if let Some(logs) = logs {
                 init_subscriber(logs, None)?;
             }
-
             let scripts = ScriptFile::parse_files(input)?;
             for script in scripts {
-                script.run(Default::default());
+                let options = InterpreterOptions::new(timeout);
+                script.run(options);
             }
         }
         Command::Record {
             overwrite,
             output,
             input,
+            timeout,
             delay,
             prompt,
             shell,
@@ -147,6 +155,7 @@ fn start() -> Result<()> {
                     output_file,
                     overwrite,
                     cinema,
+                    timeout,
                 );
 
                 script.run(options);
