@@ -67,7 +67,7 @@ dependencies = [
 
 [[package]]
 name = "anticipate"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anticipate-core",
  "anyhow",
@@ -80,7 +80,7 @@ dependencies = [
 
 [[package]]
 name = "anticipate-core"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "logos",
