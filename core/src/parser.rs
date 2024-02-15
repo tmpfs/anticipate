@@ -38,6 +38,8 @@ enum Token {
     Send,
     #[regex("#[$]\\s+flush\\s*")]
     Flush,
+    #[regex("#[$]\\s+include\\s+")]
+    Include,
     #[regex("#[$].", priority = 2)]
     Command,
     #[regex("#[^$].", priority = 1)]
@@ -80,6 +82,8 @@ pub enum Instruction<'s> {
     Send(&'s str),
     /// Flush the output stream.
     Flush,
+    /// Include instructions from path.
+    Include(&'s str),
 }
 
 /// Sequence of commands to execute.
@@ -107,6 +111,10 @@ impl ScriptParser {
                 Token::Comment => {
                     let text = self.parse_text(&mut lex, source, None)?;
                     cmd.push(Instruction::Comment(text));
+                }
+                Token::Include => {
+                    let text = self.parse_text(&mut lex, source, None)?;
+                    cmd.push(Instruction::Include(text));
                 }
                 Token::ReadLine => {
                     cmd.push(Instruction::ReadLine);

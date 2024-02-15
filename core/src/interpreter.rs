@@ -275,7 +275,7 @@ impl ScriptFile {
                         Instruction::Flush => {
                             p.flush()?;
                         }
-                        Instruction::Comment(_) => {}
+                        Instruction::Include(_) | Instruction::Comment(_) => {}
                     }
                     sleep(Duration::from_millis(25));
                 }
