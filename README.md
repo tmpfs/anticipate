@@ -54,6 +54,7 @@ sos-server start target/config.toml
 * [wait](#wait) - `#$ wait 500`
 * [send](#send) - `#$ send echo`
 * [flush](#flush) - `#$ flush`
+* [include](#include) - `#$ include ../shared.sh`
 
 The syntax is inspired by [asciinema-automation](https://github.com/PierreMarchand20/asciinema_automation/).
 
@@ -148,6 +149,16 @@ Flush the buffer being sent to the pseudo-terminal:
 ```
 #$ flush
 ```
+
+### Include
+
+Include instructions from a script file:
+
+```
+#$ include ../shared.sh
+```
+
+Paths are resolved relative to the parent directory of the script file.
 
 ## License
 
