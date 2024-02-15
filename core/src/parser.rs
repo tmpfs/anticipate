@@ -16,7 +16,7 @@ fn pragma(lex: &mut Lexer<Token>) -> Option<String> {
 
 fn integer(lex: &mut Lexer<Token>) -> Option<u64> {
     let slice = lex.slice();
-    if let Some(num) = slice.split(" ").last() {
+    if let Some(num) = slice.split(' ').last() {
         num.parse().ok()
     } else {
         None
@@ -110,16 +110,16 @@ pub struct ScriptParser;
 
 impl ScriptParser {
     /// Parse input commands.
-    pub fn parse<'s>(source: &'s str) -> Result<Instructions<'s>> {
+    pub fn parse(source: &str) -> Result<Instructions<'_>> {
         let (instructions, _) = ScriptParser::parse_file(source, "")?;
         Ok(instructions)
     }
 
     /// Parse input commands relative to a file path.
-    pub fn parse_file<'s>(
-        source: &'s str,
+    pub fn parse_file(
+        source: &str,
         base: impl AsRef<Path>,
-    ) -> Result<(Instructions<'s>, Vec<Include>)> {
+    ) -> Result<(Instructions<'_>, Vec<Include>)> {
         let mut cmd = Vec::new();
         let mut lex = Token::lexer(source);
         let mut next_token = lex.next();
@@ -237,7 +237,7 @@ impl ScriptParser {
     }
 
     pub(crate) fn interpolate(value: &str) -> Result<Cow<str>> {
-        if value.contains("$") {
+        if value.contains('$') {
             let mut s = String::new();
             let mut lex = EnvVars::lexer(value);
             let mut next_token = lex.next();

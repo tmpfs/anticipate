@@ -20,5 +20,5 @@
 #$ flush
 #$ wait 50
 #$ sendline 
-#$ expect hi
+#$ readline
 exit

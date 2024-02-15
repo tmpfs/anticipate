@@ -1,6 +1,5 @@
 use crate::{
-    resolve_path, Error, Include, Instruction, Instructions, Result,
-    ScriptParser,
+    resolve_path, Error, Instruction, Instructions, Result, ScriptParser,
 };
 use ouroboros::self_referencing;
 use probability::prelude::*;
@@ -114,7 +113,6 @@ impl InterpreterOptions {
 pub struct ScriptFile {
     path: PathBuf,
     source: ScriptSource,
-    includes: Vec<ScriptSource>,
 }
 
 impl ScriptFile {
@@ -129,7 +127,7 @@ impl ScriptFile {
     }
 
     /// Script instructions.
-    pub fn instructions<'s>(&'s self) -> &'s Instructions<'s> {
+    pub fn instructions(&self) -> &Instructions<'_> {
         self.source.borrow_instructions()
     }
 }
@@ -160,14 +158,10 @@ impl ScriptFile {
     /// Parse a single file.
     pub fn parse(path: impl AsRef<Path>) -> Result<ScriptFile> {
         tracing::info!(path = ?path.as_ref(), "parse file");
-        let mut includes = Vec::new();
-
         let source = Self::parse_source(path.as_ref())?;
-
         Ok(ScriptFile {
             path: path.as_ref().to_owned(),
             source,
-            includes,
         })
     }
 
@@ -214,7 +208,7 @@ impl ScriptFile {
                     // Export a vanilla shell for asciinema
                     let shell =
                         format!("PS1='{}' {}", cinema.prompt, cinema.shell);
-                    std::env::set_var("SHELL", &shell);
+                    std::env::set_var("SHELL", shell);
                 }
 
                 let pragma = if let Some(Instruction::Pragma(cmd)) =
@@ -258,7 +252,7 @@ impl ScriptFile {
                         let delay = if (drift as u64) < cinema.delay {
                             let drift = drift as i64;
                             if drift < 0 {
-                                cinema.delay - (drift.abs() as u64)
+                                cinema.delay - drift.unsigned_abs()
                             } else {
                                 cinema.delay + drift as u64
                             }
@@ -275,7 +269,7 @@ impl ScriptFile {
 
                 fn exec(
                     p: &mut PtySession,
-                    instructions: &Vec<Instruction<'_>>,
+                    instructions: &[Instruction<'_>],
                     options: &InterpreterOptions,
                     pragma: Option<&str>,
                 ) -> Result<()> {
@@ -287,9 +281,9 @@ impl ScriptFile {
                                     (&options.cinema, &pragma)
                                 {
                                     if cinema.type_pragma {
-                                        type_text(p, &cmd, cinema)?;
+                                        type_text(p, cmd, cinema)?;
                                     } else {
-                                        p.send_line(&cmd)?;
+                                        p.send_line(cmd)?;
                                     }
                                 }
                             }
@@ -300,7 +294,7 @@ impl ScriptFile {
                                 p.send(line.as_ref())?;
                             }
                             Instruction::SendLine(line) => {
-                                let line = ScriptParser::interpolate(*line)?;
+                                let line = ScriptParser::interpolate(line)?;
                                 if let Some(cinema) = &options.cinema {
                                     type_text(p, line.as_ref(), cinema)?;
                                 } else {

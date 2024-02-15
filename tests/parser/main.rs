@@ -26,7 +26,6 @@ fn parse_sendline() -> Result<()> {
 fn parse_readline() -> Result<()> {
     let source = "#$ readline";
     let instructions = ScriptParser::parse(source)?;
-    println!("{:#?}", instructions);
     assert_eq!(1, instructions.len());
     assert!(matches!(instructions.first(), Some(Instruction::ReadLine)));
     Ok(())
