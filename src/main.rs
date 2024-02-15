@@ -270,7 +270,6 @@ fn start() -> Result<()> {
 
             let cinema = CinemaOptions {
                 delay,
-                prompt: prompt.clone(),
                 shell: shell.clone(),
                 type_pragma,
                 deviation,
@@ -289,6 +288,7 @@ fn start() -> Result<()> {
                         trim_lines,
                         overwrite,
                         echo,
+                        &prompt,
                     ) {
                         Ok(_) => {}
                         Err(e) => tracing::error!(error = ?e),
@@ -305,6 +305,7 @@ fn start() -> Result<()> {
                         trim_lines,
                         overwrite,
                         echo,
+                        &prompt,
                     )?;
                 }
             }
@@ -335,6 +336,7 @@ fn record(
     trim_lines: u64,
     overwrite: bool,
     echo: bool,
+    prompt: &str,
 ) -> Result<()> {
     let script = ScriptFile::parse(input_file)?;
     let mut options = InterpreterOptions::new_recording(
@@ -345,6 +347,7 @@ fn record(
         echo,
     );
 
+    options.prompt = Some(prompt.to_string());
     options.id = Some(file_name.to_owned());
     script.run(options)?;
 

@@ -1,4 +1,3 @@
 ls -la
-#$ wait 1000
-#  $ waitprompt
+#$ waitprompt
 exit

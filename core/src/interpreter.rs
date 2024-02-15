@@ -14,6 +14,11 @@ use std::{
 use tracing::{span, Level};
 use unicode_segmentation::UnicodeSegmentation;
 
+const ASCIINEMA_WAIT: &str =
+    r#"asciinema: press <ctrl-d> or type "exit" when you're done"#;
+const EXIT: &str = "exit";
+const PROMPT: &str = "➜ ";
+
 struct Source<T>(T);
 
 impl<T: rand::RngCore> source::Source for Source<T> {
@@ -21,10 +26,6 @@ impl<T: rand::RngCore> source::Source for Source<T> {
         self.0.next_u64()
     }
 }
-
-const ASCIINEMA_WAIT: &str =
-    r#"asciinema: press <ctrl-d> or type "exit" when you're done"#;
-const EXIT: &str = "exit";
 
 /// Options for asciinema execution.
 #[derive(Debug, Clone)]
@@ -35,8 +36,6 @@ pub struct CinemaOptions {
     pub type_pragma: bool,
     /// Deviation for gaussian delay modification.
     pub deviation: f64,
-    /// Prompt for the shell.
-    pub prompt: String,
     /// Shell to run.
     pub shell: String,
     /// Terminal columns.
@@ -50,8 +49,7 @@ impl Default for CinemaOptions {
         Self {
             delay: 80,
             type_pragma: false,
-            deviation: 5.0,
-            prompt: "➜ ".to_string(),
+            deviation: 15.0,
             shell: "sh -noprofile -norc".to_string(),
             cols: 80,
             rows: 24,
@@ -235,14 +233,13 @@ impl ScriptFile {
         let is_cinema = options.cinema.is_some();
 
         let prompt =
-            options.prompt.clone().unwrap_or_else(|| "> ".to_owned());
+            options.prompt.clone().unwrap_or_else(|| PROMPT.to_owned());
+        std::env::set_var("PS1", &prompt);
 
         if let Some(cinema) = &options.cinema {
             // Export a vanilla shell for asciinema
-            let shell = format!("PS1='{}' {}", cinema.prompt, cinema.shell);
+            let shell = format!("PS1='{}' {}", &prompt, cinema.shell);
             std::env::set_var("SHELL", shell);
-        } else {
-            std::env::set_var("PS1", &prompt);
         }
 
         let pragma =
@@ -395,6 +392,8 @@ impl ScriptFile {
                         )?;
                     }
                 }
+
+                sleep(Duration::from_millis(25));
             }
             Ok(())
         }
