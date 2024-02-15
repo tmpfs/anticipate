@@ -3,7 +3,9 @@ use crate::{
 };
 use ouroboros::self_referencing;
 use probability::prelude::*;
-use rexpect::{session::PtySession, spawn};
+use rexpect::{
+    session::Options, session::PtyReplSession, spawn_with_options,
+};
 use std::{
     path::{Path, PathBuf},
     thread::sleep,
@@ -67,6 +69,8 @@ pub struct InterpreterOptions {
     pub cinema: Option<CinemaOptions>,
     /// Identifier.
     pub id: Option<String>,
+    /// Prompt.
+    pub prompt: Option<String>,
     /// Echo to stdout.
     pub echo: bool,
 }
@@ -74,26 +78,30 @@ pub struct InterpreterOptions {
 impl Default for InterpreterOptions {
     fn default() -> Self {
         Self {
-            command: "sh".to_owned(),
-            //command: "PS1='$ ' sh -noprofile -norc".to_owned(),
+            command: "sh -noprofile -norc".to_owned(),
+            prompt: None,
+            //command: "PS1='> ' sh".to_owned(),
             timeout: Some(5000),
             cinema: None,
             id: None,
-            echo: true,
+            echo: false,
         }
     }
 }
 
 impl InterpreterOptions {
     /// Create interpreter options.
-    pub fn new(timeout: u64) -> Self {
+    pub fn new(timeout: u64, echo: bool) -> Self {
         Self {
-            command: "sh".to_owned(),
+            command: "sh -noprofile -norc".to_owned(),
+            prompt: None,
+            //command: "bash".to_owned(),
+            //command: "PS1='> ' sh".to_owned(),
             //command: "PS1='$ ' sh -noprofile -norc".to_owned(),
             timeout: Some(timeout),
             cinema: None,
             id: None,
-            echo: true,
+            echo,
         }
     }
 
@@ -103,6 +111,7 @@ impl InterpreterOptions {
         overwrite: bool,
         options: CinemaOptions,
         timeout: u64,
+        echo: bool,
     ) -> Self {
         let mut command = format!(
             "asciinema rec {:#?}",
@@ -115,10 +124,11 @@ impl InterpreterOptions {
         command.push_str(&format!(" --cols={}", options.cols));
         Self {
             command,
+            prompt: None,
             timeout: Some(timeout),
             cinema: Some(options),
             id: None,
-            echo: true,
+            echo,
         }
     }
 }
@@ -224,10 +234,15 @@ impl ScriptFile {
         let instructions = self.source.borrow_instructions();
         let is_cinema = options.cinema.is_some();
 
+        let prompt =
+            options.prompt.clone().unwrap_or_else(|| "> ".to_owned());
+
         if let Some(cinema) = &options.cinema {
             // Export a vanilla shell for asciinema
             let shell = format!("PS1='{}' {}", cinema.prompt, cinema.shell);
             std::env::set_var("SHELL", shell);
+        } else {
+            std::env::set_var("PS1", &prompt);
         }
 
         let pragma =
@@ -244,7 +259,7 @@ impl ScriptFile {
         };
 
         tracing::info!(exec = %exec_cmd, "run");
-        let mut p = spawn(&exec_cmd, options.timeout)?;
+        let mut p = session(&exec_cmd, options.timeout, prompt)?;
 
         if options.cinema.is_some() {
             p.exp_string(ASCIINEMA_WAIT)?;
@@ -254,7 +269,7 @@ impl ScriptFile {
         }
 
         fn type_text(
-            pty: &mut PtySession,
+            pty: &mut PtyReplSession,
             text: &str,
             cinema: &CinemaOptions,
             echo: bool,
@@ -264,7 +279,7 @@ impl ScriptFile {
                 pty.flush()?;
 
                 if echo {
-                    //println!("> {}", c);
+                    println!("> {}", c);
                 }
 
                 let mut source = Source(rand::rngs::OsRng);
@@ -289,14 +304,14 @@ impl ScriptFile {
             pty.flush()?;
 
             if echo {
-                //println!("> {}", '\n');
+                println!("> {}", '\n');
             }
 
             Ok(())
         }
 
         fn exec(
-            p: &mut PtySession,
+            p: &mut PtyReplSession,
             instructions: &[Instruction<'_>],
             options: &InterpreterOptions,
             pragma: Option<&str>,
@@ -312,7 +327,7 @@ impl ScriptFile {
                                 type_text(p, cmd, cinema, options.echo)?;
                             } else {
                                 if options.echo {
-                                    //println!("> {}", cmd);
+                                    println!("> {}", cmd);
                                 }
                                 p.send_line(cmd)?;
                             }
@@ -323,19 +338,24 @@ impl ScriptFile {
                     }
                     Instruction::Send(line) => {
                         if options.echo {
-                            //println!("> {}", line);
+                            println!("> {}", line);
                         }
                         p.send(line.as_ref())?;
                     }
                     Instruction::SendLine(line) => {
                         let line = ScriptParser::interpolate(line)?;
                         if let Some(cinema) = &options.cinema {
-                            type_text(p, line.as_ref(), cinema, options.echo)?;
+                            type_text(
+                                p,
+                                line.as_ref(),
+                                cinema,
+                                options.echo,
+                            )?;
                         } else {
-                            if options.echo {
-                                //println!("> {}", line);
-                            }
                             p.send_line(line.as_ref())?;
+                            if options.echo {
+                                println!("> {}", line);
+                            }
                         }
                     }
                     Instruction::SendControl(ctrl) => {
@@ -344,20 +364,23 @@ impl ScriptFile {
                     Instruction::Expect(line) => {
                         let output = p.exp_string(line)?;
                         if options.echo {
-                            //println!("< {}", output);
+                            println!("< {}", output);
                         }
                     }
                     Instruction::Regex(line) => {
-                        let (output, re) = p.exp_regex(line)?;
+                        let (output, _) = p.exp_regex(line)?;
                         if options.echo {
-                            //println!("< {}", output);
+                            println!("< {}", output);
                         }
                     }
                     Instruction::ReadLine => {
                         let line = p.read_line()?;
                         if options.echo {
-                            //println!("< {}", line);
+                            println!("< {}", line);
                         }
+                    }
+                    Instruction::WaitPrompt => {
+                        p.wait_for_prompt()?;
                     }
                     Instruction::Flush => {
                         p.flush()?;
@@ -372,8 +395,6 @@ impl ScriptFile {
                         )?;
                     }
                 }
-
-                //sleep(Duration::from_millis(100));
             }
             Ok(())
         }
@@ -395,4 +416,32 @@ impl ScriptFile {
 
         Ok(())
     }
+}
+
+fn session(
+    cmd: &str,
+    timeout: Option<u64>,
+    prompt: String,
+    //strip_ansi: bool,
+) -> Result<PtyReplSession> {
+    use std::process::Command;
+    let mut parts = comma::parse_command(cmd)
+        .ok_or(Error::BadArguments(cmd.to_owned()))?;
+    let prog = parts.remove(0);
+    let mut command = Command::new(prog);
+    command.args(parts);
+
+    let options = Options {
+        timeout_ms: timeout,
+        strip_ansi_escape_codes: true,
+    };
+
+    let ed = PtyReplSession {
+        echo_on: false,
+        prompt,
+        pty_session: spawn_with_options(command, options)?,
+        quit_command: None,
+    };
+
+    Ok(ed)
 }

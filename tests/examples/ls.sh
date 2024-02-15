@@ -1,3 +1,4 @@
 ls -la
-#$ regex rustfmt.toml
+#$ wait 1000
+#  $ waitprompt
 exit

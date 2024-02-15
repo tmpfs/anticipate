@@ -40,6 +40,8 @@ enum Token {
     Wait(u64),
     #[regex("#[$]\\s+readline\\s*")]
     ReadLine,
+    #[regex("#[$]\\s+waitprompt\\s*")]
+    WaitPrompt,
     #[regex("#[$]\\s+send ")]
     Send,
     #[regex("#[$]\\s+flush\\s*")]
@@ -93,6 +95,8 @@ pub enum Instruction<'s> {
     Comment(&'s str),
     /// Read a line of output.
     ReadLine,
+    /// Wait for the prompt.
+    WaitPrompt,
     /// Send text, the output stream is not flushed.
     Send(&'s str),
     /// Flush the output stream.
@@ -126,7 +130,7 @@ impl ScriptParser {
         let mut includes = Vec::new();
         while let Some(token) = next_token.take() {
             let token = token?;
-            
+
             let span = lex.span();
             tracing::debug!(token = ?token, "parse");
             match token {
@@ -165,6 +169,9 @@ impl ScriptParser {
                 }
                 Token::ReadLine => {
                     cmd.push(Instruction::ReadLine);
+                }
+                Token::WaitPrompt => {
+                    cmd.push(Instruction::WaitPrompt);
                 }
                 Token::Pragma(pragma) => {
                     if !cmd.is_empty() {
@@ -267,6 +274,8 @@ impl ScriptParser {
                     }
                     _ => s.push_str(lex.slice()),
                 }
+
+                next_token = lex.next();
             }
             Ok(Cow::Owned(s))
         } else {

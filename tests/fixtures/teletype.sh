@@ -1,3 +1,4 @@
+#!/bin/bash
 #$ send e
 #$ flush
 #$ wait 50

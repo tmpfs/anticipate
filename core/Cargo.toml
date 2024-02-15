@@ -8,12 +8,13 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 logos = "0.14"
 thiserror = "1"
-rexpect = "0.5"
+rexpect = { version = "0.5", git = "https://github.com/rust-cli/rexpect.git" }
 ouroboros = "0.18"
 tracing = "0.1"
 unicode-segmentation = "1"
 probability = "0.20"
 rand = "0.8"
+comma = "1"
 
 [dev-dependencies]
 anyhow = "1"

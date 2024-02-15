@@ -65,6 +65,10 @@ pub enum Command {
         #[clap(short, long, default_value = "5000")]
         timeout: u64,
 
+        /// Echo input and output.
+        #[clap(short, long)]
+        echo: bool,
+
         /// Input file paths.
         input: Vec<PathBuf>,
     },
@@ -83,6 +87,10 @@ pub enum Command {
         /// Timeout for the pseudo-terminal.
         #[clap(short, long, default_value = "5000")]
         timeout: u64,
+
+        /// Echo input and output.
+        #[clap(short, long)]
+        echo: bool,
 
         /// Overwrite existing recordings.
         #[clap(short, long)]
@@ -138,7 +146,9 @@ fn start() -> Result<()> {
             parallel,
         } => {
             if let Some(logs) = logs {
-                init_subscriber(logs, None)?;
+                init_subscriber(Some(logs), None)?;
+            } else {
+                init_subscriber(None, Some("error".to_string()))?;
             }
 
             let mut files = Vec::new();
@@ -174,9 +184,12 @@ fn start() -> Result<()> {
             timeout,
             parallel,
             logs,
+            echo,
         } => {
             if let Some(logs) = logs {
-                init_subscriber(logs, None)?;
+                init_subscriber(Some(logs), None)?;
+            } else {
+                init_subscriber(None, Some("error".to_string()))?;
             }
 
             let mut files = Vec::new();
@@ -196,6 +209,7 @@ fn start() -> Result<()> {
                         &input_file,
                         &file_name,
                         timeout,
+                        echo,
                     ) {
                         Ok(_) => {}
                         Err(e) => tracing::error!(error = ?e),
@@ -203,19 +217,9 @@ fn start() -> Result<()> {
                 );
             } else {
                 for (input_file, file_name) in files {
-                    run(&input_file, &file_name, timeout)?;
+                    run(&input_file, &file_name, timeout, echo)?;
                 }
             }
-
-            /*
-            let scripts = ScriptFile::parse_files(input)?;
-            for script in scripts {
-                let file_name = script.path().file_name().unwrap();
-                let mut options = InterpreterOptions::new(timeout);
-                options.id = Some(file_name.to_string_lossy().into_owned());
-                script.run(&options)?;
-            }
-            */
         }
         Command::Record {
             parallel,
@@ -232,9 +236,12 @@ fn start() -> Result<()> {
             rows,
             deviation,
             logs,
+            echo,
         } => {
             if let Some(logs) = logs {
-                init_subscriber(logs, None)?;
+                init_subscriber(Some(logs), None)?;
+            } else {
+                init_subscriber(None, Some("error".to_string()))?;
             }
 
             let mut files = Vec::new();
@@ -281,6 +288,7 @@ fn start() -> Result<()> {
                         timeout,
                         trim_lines,
                         overwrite,
+                        echo,
                     ) {
                         Ok(_) => {}
                         Err(e) => tracing::error!(error = ?e),
@@ -296,6 +304,7 @@ fn start() -> Result<()> {
                         timeout,
                         trim_lines,
                         overwrite,
+                        echo,
                     )?;
                 }
             }
@@ -304,9 +313,14 @@ fn start() -> Result<()> {
     Ok(())
 }
 
-fn run(input_file: &PathBuf, file_name: &str, timeout: u64) -> Result<()> {
+fn run(
+    input_file: &PathBuf,
+    file_name: &str,
+    timeout: u64,
+    echo: bool,
+) -> Result<()> {
     let script = ScriptFile::parse(input_file)?;
-    let mut options = InterpreterOptions::new(timeout);
+    let mut options = InterpreterOptions::new(timeout, echo);
     options.id = Some(file_name.to_owned());
     script.run(options)?;
     Ok(())
@@ -320,6 +334,7 @@ fn record(
     timeout: u64,
     trim_lines: u64,
     overwrite: bool,
+    echo: bool,
 ) -> Result<()> {
     let script = ScriptFile::parse(input_file)?;
     let mut options = InterpreterOptions::new_recording(
@@ -327,6 +342,7 @@ fn record(
         overwrite,
         cinema.clone(),
         timeout,
+        echo,
     );
 
     options.id = Some(file_name.to_owned());
@@ -340,12 +356,9 @@ fn record(
 
 #[doc(hidden)]
 fn init_subscriber(
-    logs_dir: PathBuf,
+    logs_dir: Option<PathBuf>,
     default_log_level: Option<String>,
 ) -> Result<()> {
-    let logfile =
-        RollingFileAppender::new(Rotation::DAILY, logs_dir, LOG_FILE_NAME);
-
     let default_log_level = default_log_level.unwrap_or_else(|| {
         "anticipate=debug,anticipate_core=debug".to_owned()
     });
@@ -356,18 +369,31 @@ fn init_subscriber(
         .with_file(false)
         .with_line_number(false)
         .with_target(false);
-    let file_layer = tracing_subscriber::fmt::layer()
-        .with_file(false)
-        .with_line_number(false)
-        .with_ansi(false)
-        .json()
-        .with_writer(logfile);
 
-    tracing_subscriber::registry()
-        .with(env_layer)
-        .with(fmt_layer)
-        .with(file_layer)
-        .try_init()?;
+    if let Some(logs_dir) = logs_dir {
+        let logfile = RollingFileAppender::new(
+            Rotation::DAILY,
+            logs_dir,
+            LOG_FILE_NAME,
+        );
+        let file_layer = tracing_subscriber::fmt::layer()
+            .with_file(false)
+            .with_line_number(false)
+            .with_ansi(false)
+            .json()
+            .with_writer(logfile);
+
+        tracing_subscriber::registry()
+            .with(env_layer)
+            .with(fmt_layer)
+            .with(file_layer)
+            .try_init()?;
+    } else {
+        tracing_subscriber::registry()
+            .with(env_layer)
+            .with(fmt_layer)
+            .try_init()?;
+    }
 
     Ok(())
 }
