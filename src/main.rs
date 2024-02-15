@@ -5,6 +5,7 @@
 use anticipate_core::{CinemaOptions, InterpreterOptions, ScriptFile};
 use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
+use rayon::prelude::*;
 use std::path::PathBuf;
 use std::{
     fs::{File, OpenOptions},
@@ -66,6 +67,10 @@ pub enum Command {
         /// Directory to write logs.
         #[clap(short, long)]
         logs: Option<PathBuf>,
+
+        /// Execute script in parallel.
+        #[clap(short, long)]
+        parallel: bool,
 
         /// Timeout for the pseudo-terminal.
         #[clap(short, long, default_value = "5000")]
@@ -141,10 +146,11 @@ fn start() -> Result<()> {
                 let file_name = script.path().file_name().unwrap();
                 let mut options = InterpreterOptions::new(timeout);
                 options.id = Some(file_name.to_string_lossy().into_owned());
-                script.run(options);
+                script.run(&options)?;
             }
         }
         Command::Record {
+            parallel,
             overwrite,
             output,
             input,
@@ -163,10 +169,11 @@ fn start() -> Result<()> {
                 init_subscriber(logs, None)?;
             }
 
-            let scripts = ScriptFile::parse_files(input)?;
-            for script in scripts {
-                let file_name = script.path().file_name().unwrap();
-                let mut output_file = output.join(file_name);
+            let mut files = Vec::new();
+            for file in input {
+                let file_name = file.file_name().unwrap();
+                let name = file_name.to_string_lossy().into_owned();
+                let mut output_file = output.join(&name);
                 output_file.set_extension("cast");
 
                 if !overwrite && output_file.exists() {
@@ -175,33 +182,77 @@ fn start() -> Result<()> {
                         output_file.to_string_lossy(),
                     );
                 }
+                files.push((file, output_file, name));
+            }
 
-                let cinema = CinemaOptions {
-                    delay,
-                    prompt: prompt.clone(),
-                    shell: shell.clone(),
-                    type_pragma,
-                    deviation,
-                    cols,
-                    rows,
-                };
+            let cinema = CinemaOptions {
+                delay,
+                prompt: prompt.clone(),
+                shell: shell.clone(),
+                type_pragma,
+                deviation,
+                cols,
+                rows,
+            };
 
-                let mut options = InterpreterOptions::new_recording(
-                    output_file.clone(),
-                    overwrite,
-                    cinema,
-                    timeout,
-                );
+            if parallel {
+                files
+                    .par_iter()
+                    .for_each(|(input_file, output_file, file_name)| {
+                        match record(
+                            &input_file,
+                            &output_file,
+                            &file_name,
+                            &cinema,
+                            timeout,
+                            trim_lines,
+                            overwrite,
+                        ) {
+                            Ok(_) => {},
+                            Err(e) => tracing::error!(error = ?e),
+                        }
 
-                options.id = Some(file_name.to_string_lossy().into_owned());
-
-                script.run(options);
-
-                if trim_lines > 0 {
-                    trim_exit(&output_file, trim_lines)?;
+                    });
+            } else {
+                for (input_file, output_file, file_name) in files {
+                    record(
+                        &input_file,
+                        &output_file,
+                        &file_name,
+                        &cinema,
+                        timeout,
+                        trim_lines,
+                        overwrite,
+                    )?;
                 }
             }
         }
+    }
+    Ok(())
+}
+
+fn record(
+    input_file: &PathBuf,
+    output_file: &PathBuf,
+    file_name: &str,
+    cinema: &CinemaOptions,
+    timeout: u64,
+    trim_lines: u64,
+    overwrite: bool,
+) -> Result<()> {
+    let script = ScriptFile::parse(input_file)?;
+    let mut options = InterpreterOptions::new_recording(
+        output_file.clone(),
+        overwrite,
+        cinema.clone(),
+        timeout,
+    );
+
+    options.id = Some(file_name.to_owned());
+    script.run(&options)?;
+
+    if trim_lines > 0 {
+        trim_exit(&output_file, trim_lines)?;
     }
     Ok(())
 }

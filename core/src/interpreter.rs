@@ -6,7 +6,7 @@ use probability::prelude::*;
 use rexpect::{session::PtySession, spawn};
 use std::{
     path::{Path, PathBuf},
-    thread::{self, sleep},
+    thread::sleep,
     time::Duration,
 };
 use tracing::{span, Level};
@@ -25,6 +25,7 @@ const ASCIINEMA_WAIT: &str =
 const EXIT: &str = "exit";
 
 /// Options for asciinema execution.
+#[derive(Debug, Clone)]
 pub struct CinemaOptions {
     /// Delay in milliseconds.
     pub delay: u64,
@@ -203,173 +204,160 @@ impl ScriptFile {
 
     /// Execute the command and instructions in a pseudo-terminal
     /// running in a thread.
-    pub fn run(&self, options: InterpreterOptions) {
-        thread::scope(|s| {
-            let cmd = options.command.clone();
+    pub fn run(&self, options: &InterpreterOptions) -> Result<()> {
+        let cmd = options.command.clone();
 
-            let handle = s.spawn(move || {
-                
-                let span = if let Some(id) = &options.id {
-                    span!(Level::DEBUG, "run", id = id)
-                } else {
-                    span!(Level::DEBUG, "run")
-                };
+        let span = if let Some(id) = &options.id {
+            span!(Level::DEBUG, "run", id = id)
+        } else {
+            span!(Level::DEBUG, "run")
+        };
 
-                let _enter = span.enter();
+        let _enter = span.enter();
 
-                let instructions = self.source.borrow_instructions();
-                let is_cinema = options.cinema.is_some();
+        let instructions = self.source.borrow_instructions();
+        let is_cinema = options.cinema.is_some();
 
-                if let Some(cinema) = &options.cinema {
-                    // Export a vanilla shell for asciinema
-                    let shell =
-                        format!("PS1='{}' {}", cinema.prompt, cinema.shell);
-                    std::env::set_var("SHELL", shell);
-                }
+        if let Some(cinema) = &options.cinema {
+            // Export a vanilla shell for asciinema
+            let shell = format!("PS1='{}' {}", cinema.prompt, cinema.shell);
+            std::env::set_var("SHELL", shell);
+        }
 
-                let pragma = if let Some(Instruction::Pragma(cmd)) =
-                    instructions.first()
-                {
-                    Some(resolve_path(&self.path, cmd)?)
-                } else {
-                    None
-                };
+        let pragma =
+            if let Some(Instruction::Pragma(cmd)) = instructions.first() {
+                Some(resolve_path(&self.path, cmd)?)
+            } else {
+                None
+            };
 
-                let exec_cmd =
-                    if let (false, Some(pragma)) = (is_cinema, &pragma) {
-                        pragma.as_ref().to_owned()
+        let exec_cmd = if let (false, Some(pragma)) = (is_cinema, &pragma) {
+            pragma.as_ref().to_owned()
+        } else {
+            cmd.to_owned()
+        };
+
+        tracing::info!(exec = %exec_cmd, "run");
+        let mut p = spawn(&exec_cmd, options.timeout)?;
+
+        if options.cinema.is_some() {
+            p.exp_string(ASCIINEMA_WAIT)?;
+            // Wait for the initial shell prompt to flush
+            sleep(Duration::from_millis(50));
+            tracing::debug!("asciinema ready");
+        }
+
+        fn type_text(
+            pty: &mut PtySession,
+            text: &str,
+            cinema: &CinemaOptions,
+        ) -> Result<()> {
+            for c in UnicodeSegmentation::graphemes(text, true) {
+                pty.send(c)?;
+                pty.flush()?;
+
+                let mut source = Source(rand::rngs::OsRng);
+                let gaussian = Gaussian::new(0.0, cinema.deviation);
+                let drift = gaussian.sample(&mut source);
+
+                let delay = if (drift as u64) < cinema.delay {
+                    let drift = drift as i64;
+                    if drift < 0 {
+                        cinema.delay - drift.unsigned_abs()
                     } else {
-                        cmd.to_owned()
-                    };
-
-                tracing::info!(exec = %exec_cmd, "run");
-                let mut p = spawn(&exec_cmd, options.timeout)?;
-
-                if options.cinema.is_some() {
-                    p.exp_string(ASCIINEMA_WAIT)?;
-                    // Wait for the initial shell prompt to flush
-                    sleep(Duration::from_millis(50));
-                    tracing::debug!("asciinema ready");
-                }
-
-                fn type_text(
-                    pty: &mut PtySession,
-                    text: &str,
-                    cinema: &CinemaOptions,
-                ) -> Result<()> {
-                    for c in UnicodeSegmentation::graphemes(text, true) {
-                        pty.send(c)?;
-                        pty.flush()?;
-
-                        let mut source = Source(rand::rngs::OsRng);
-                        let gaussian = Gaussian::new(0.0, cinema.deviation);
-                        let drift = gaussian.sample(&mut source);
-
-                        let delay = if (drift as u64) < cinema.delay {
-                            let drift = drift as i64;
-                            if drift < 0 {
-                                cinema.delay - drift.unsigned_abs()
-                            } else {
-                                cinema.delay + drift as u64
-                            }
-                        } else {
-                            cinema.delay + drift.abs() as u64
-                        };
-
-                        sleep(Duration::from_millis(delay));
+                        cinema.delay + drift as u64
                     }
-                    pty.send("\n")?;
-                    pty.flush()?;
-                    Ok(())
-                }
+                } else {
+                    cinema.delay + drift.abs() as u64
+                };
 
-                fn exec(
-                    p: &mut PtySession,
-                    instructions: &[Instruction<'_>],
-                    options: &InterpreterOptions,
-                    pragma: Option<&str>,
-                ) -> Result<()> {
-                    for cmd in instructions.iter() {
-                        tracing::debug!(instruction = ?cmd);
-                        match cmd {
-                            Instruction::Pragma(_) => {
-                                if let (Some(cinema), Some(cmd)) =
-                                    (&options.cinema, &pragma)
-                                {
-                                    if cinema.type_pragma {
-                                        type_text(p, cmd, cinema)?;
-                                    } else {
-                                        p.send_line(cmd)?;
-                                    }
-                                }
-                            }
-                            Instruction::Wait(delay) => {
-                                sleep(Duration::from_millis(*delay));
-                            }
-                            Instruction::Send(line) => {
-                                p.send(line.as_ref())?;
-                            }
-                            Instruction::SendLine(line) => {
-                                let line = ScriptParser::interpolate(line)?;
-                                if let Some(cinema) = &options.cinema {
-                                    type_text(p, line.as_ref(), cinema)?;
-                                } else {
-                                    p.send_line(line.as_ref())?;
-                                }
-                            }
-                            Instruction::SendControl(ctrl) => {
-                                p.send_control(*ctrl)?;
-                            }
-                            Instruction::Expect(line) => {
-                                p.exp_string(line)?;
-                            }
-                            Instruction::Regex(line) => {
-                                p.exp_regex(line)?;
-                            }
-                            Instruction::ReadLine => {
-                                p.read_line()?;
-                            }
-                            Instruction::Flush => {
-                                p.flush()?;
-                            }
-                            Instruction::Comment(_) => {}
-                            Instruction::Include(source) => {
-                                exec(
-                                    p,
-                                    source.borrow_instructions(),
-                                    options,
-                                    pragma,
-                                )?;
+                sleep(Duration::from_millis(delay));
+            }
+            pty.send("\n")?;
+            pty.flush()?;
+            Ok(())
+        }
+
+        fn exec(
+            p: &mut PtySession,
+            instructions: &[Instruction<'_>],
+            options: &InterpreterOptions,
+            pragma: Option<&str>,
+        ) -> Result<()> {
+            for cmd in instructions.iter() {
+                tracing::debug!(instruction = ?cmd);
+                match cmd {
+                    Instruction::Pragma(_) => {
+                        if let (Some(cinema), Some(cmd)) =
+                            (&options.cinema, &pragma)
+                        {
+                            if cinema.type_pragma {
+                                type_text(p, cmd, cinema)?;
+                            } else {
+                                p.send_line(cmd)?;
                             }
                         }
-                        sleep(Duration::from_millis(25));
                     }
-
-                    Ok(())
+                    Instruction::Wait(delay) => {
+                        sleep(Duration::from_millis(*delay));
+                    }
+                    Instruction::Send(line) => {
+                        p.send(line.as_ref())?;
+                    }
+                    Instruction::SendLine(line) => {
+                        let line = ScriptParser::interpolate(line)?;
+                        if let Some(cinema) = &options.cinema {
+                            type_text(p, line.as_ref(), cinema)?;
+                        } else {
+                            p.send_line(line.as_ref())?;
+                        }
+                    }
+                    Instruction::SendControl(ctrl) => {
+                        p.send_control(*ctrl)?;
+                    }
+                    Instruction::Expect(line) => {
+                        p.exp_string(line)?;
+                    }
+                    Instruction::Regex(line) => {
+                        p.exp_regex(line)?;
+                    }
+                    Instruction::ReadLine => {
+                        p.read_line()?;
+                    }
+                    Instruction::Flush => {
+                        p.flush()?;
+                    }
+                    Instruction::Comment(_) => {}
+                    Instruction::Include(source) => {
+                        exec(
+                            p,
+                            source.borrow_instructions(),
+                            options,
+                            pragma,
+                        )?;
+                    }
                 }
-
-                exec(
-                    &mut p,
-                    instructions,
-                    &options,
-                    pragma.as_ref().map(|i| i.as_ref()),
-                )?;
-
-                if options.cinema.is_some() {
-                    tracing::debug!("exit");
-                    p.send_line(EXIT)?;
-                } else {
-                    tracing::debug!("eof");
-                    p.exp_eof()?;
-                }
-
-                Ok::<(), Error>(())
-            });
-
-            let res = handle.join().unwrap();
-            if let Err(e) = res {
-                eprintln!("{:#?}", e);
+                sleep(Duration::from_millis(25));
             }
-        });
+
+            Ok(())
+        }
+
+        exec(
+            &mut p,
+            instructions,
+            &options,
+            pragma.as_ref().map(|i| i.as_ref()),
+        )?;
+
+        if options.cinema.is_some() {
+            tracing::debug!("exit");
+            p.send_line(EXIT)?;
+        } else {
+            tracing::debug!("eof");
+            p.exp_eof()?;
+        }
+
+        Ok(())
     }
 }
