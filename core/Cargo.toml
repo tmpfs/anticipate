@@ -9,6 +9,7 @@ license = "MIT OR Apache-2.0"
 logos = "0.14"
 thiserror = "1"
 rexpect = { version = "0.5", path = "../../forks/rexpect" }
+expectrl = "0.7"
 ouroboros = "0.18"
 tracing = "0.1"
 unicode-segmentation = "1"
