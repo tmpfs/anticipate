@@ -107,6 +107,43 @@ fn parse_comment() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn parse_send() -> Result<()> {
+    let source = "#$ send echo";
+    let instructions = ScriptParser::parse(source)?;
+    assert_eq!(1, instructions.len());
+    assert!(matches!(
+        instructions.first(),
+        Some(Instruction::Send(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn parse_flush() -> Result<()> {
+    let source = "#$ flush";
+    let instructions = ScriptParser::parse(source)?;
+    assert_eq!(1, instructions.len());
+    assert!(matches!(
+        instructions.first(),
+        Some(Instruction::Flush)
+    ));
+    Ok(())
+}
+
+#[test]
+fn parse_include() -> Result<()> {
+    let source = "#$ include ../shared/script.sh";
+    let mut instructions = ScriptParser::parse(source)?;
+    assert_eq!(1, instructions.len());
+    if let Instruction::Include(path) = instructions.remove(0) {
+        assert_eq!("../shared/script.sh", path);
+    } else {
+        panic!("expected include instruction");
+    }
+    Ok(())
+}
+
 // Errors
 
 #[test]
