@@ -2,4 +2,4 @@
 
 #$ expect Running
 #$ wait 500
-#$ sendcontrol c
+#$ sendcontrol ^C

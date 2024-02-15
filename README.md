@@ -1,6 +1,6 @@
 # Anticipate
 
-Script based automation using [rexpect](https://docs.rs/rexpect/latest/rexpect/) with support for [asciinema][].
+Script based automation using [expectrl](https://docs.rs/expectrl/) with support for [asciinema][].
 
 Perfect for demos of CLI tools and useful for automating integration testing.
 
@@ -39,14 +39,14 @@ cat target/config.toml
 #$ expect path = "server/accounts"
 
 sos-server start target/config.toml
-#$ sendcontrol c
+#$ sendcontrol ^C
 ```
 
 ## Syntax
 
 * [pragma](#pragma) - `#!`
 * [sendline](#send-line) - `#$ sendline ls -la`
-* [sendcontrol](#send-control) - `#$ sendcontrol c`
+* [sendcontrol](#send-control) - `#$ sendcontrol ^C`
 * [expect](#expect) - `#$ expect Documents`
 * [regex](#regex) - `#$ regex [0-9]`
 * [readline](#read-line) - `#$ readline`
@@ -98,7 +98,7 @@ Or you can use the sendline command explicitly:
 To send a control character, for example Ctrl+C:
 
 ```
-#$ sendcontrol c
+#$ sendcontrol ^C
 ```
 
 ### Expect

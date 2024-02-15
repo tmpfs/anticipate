@@ -69,10 +69,6 @@ pub enum Command {
         #[clap(short, long)]
         echo: bool,
 
-        /// Strip ANSI from output.
-        #[clap(short, long)]
-        strip_ansi: bool,
-
         /// Input file paths.
         input: Vec<PathBuf>,
     },
@@ -95,10 +91,6 @@ pub enum Command {
         /// Echo input and output.
         #[clap(short, long)]
         echo: bool,
-
-        /// Strip ANSI from output.
-        #[clap(short, long)]
-        strip_ansi: bool,
 
         /// Overwrite existing recordings.
         #[clap(short, long)]
@@ -193,7 +185,6 @@ fn start() -> Result<()> {
             parallel,
             logs,
             echo,
-            strip_ansi,
         } => {
             if let Some(logs) = logs {
                 init_subscriber(Some(logs), None)?;
@@ -219,7 +210,6 @@ fn start() -> Result<()> {
                         &file_name,
                         timeout,
                         echo,
-                        strip_ansi,
                     ) {
                         Ok(_) => {}
                         Err(e) => tracing::error!(error = ?e),
@@ -227,7 +217,7 @@ fn start() -> Result<()> {
                 );
             } else {
                 for (input_file, file_name) in files {
-                    run(&input_file, &file_name, timeout, echo, strip_ansi)?;
+                    run(&input_file, &file_name, timeout, echo)?;
                 }
             }
         }
@@ -247,7 +237,6 @@ fn start() -> Result<()> {
             deviation,
             logs,
             echo,
-            strip_ansi,
         } => {
             if let Some(logs) = logs {
                 init_subscriber(Some(logs), None)?;
@@ -300,7 +289,6 @@ fn start() -> Result<()> {
                         overwrite,
                         echo,
                         &prompt,
-                        strip_ansi,
                     ) {
                         Ok(_) => {}
                         Err(e) => tracing::error!(error = ?e),
@@ -318,7 +306,6 @@ fn start() -> Result<()> {
                         overwrite,
                         echo,
                         &prompt,
-                        strip_ansi,
                     )?;
                 }
             }
@@ -332,10 +319,9 @@ fn run(
     file_name: &str,
     timeout: u64,
     echo: bool,
-    strip_ansi: bool,
 ) -> Result<()> {
     let script = ScriptFile::parse(input_file)?;
-    let mut options = InterpreterOptions::new(timeout, echo, strip_ansi);
+    let mut options = InterpreterOptions::new(timeout, echo);
     options.id = Some(file_name.to_owned());
     script.run(options)?;
     Ok(())
@@ -351,7 +337,6 @@ fn record(
     overwrite: bool,
     echo: bool,
     prompt: &str,
-    strip_ansi: bool,
 ) -> Result<()> {
     let script = ScriptFile::parse(input_file)?;
     let mut options = InterpreterOptions::new_recording(
@@ -360,7 +345,6 @@ fn record(
         cinema.clone(),
         timeout,
         echo,
-        strip_ansi,
     );
 
     options.prompt = Some(prompt.to_string());

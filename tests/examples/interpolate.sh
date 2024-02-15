@@ -1,4 +1,3 @@
-#!/bin/bash
+#!/bin/sh
 echo $NAME
 #$ readline
-exit

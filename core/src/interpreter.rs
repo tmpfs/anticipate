@@ -1,11 +1,15 @@
 use crate::{
     resolve_path, Error, Instruction, Instructions, Result, ScriptParser,
 };
+use expectrl::{
+    process::unix::{PtyStream, UnixProcess},
+    session::{log, Session},
+    stream::log::LogStream,
+    Captures, ControlCode, Eof, Needle, Regex, WaitStatus,
+};
 use ouroboros::self_referencing;
 use probability::prelude::*;
-use rexpect::{
-    session::Options, session::PtyReplSession, spawn_with_options,
-};
+use std::io::{self, BufRead, Read, Stdout, Write};
 use std::{
     path::{Path, PathBuf},
     thread::sleep,
@@ -70,8 +74,6 @@ pub struct InterpreterOptions {
     pub prompt: Option<String>,
     /// Echo to stdout.
     pub echo: bool,
-    /// Strip ANSI from pty output.
-    pub strip_ansi: bool,
 }
 
 impl Default for InterpreterOptions {
@@ -84,14 +86,13 @@ impl Default for InterpreterOptions {
             cinema: None,
             id: None,
             echo: false,
-            strip_ansi: false,
         }
     }
 }
 
 impl InterpreterOptions {
     /// Create interpreter options.
-    pub fn new(timeout: u64, echo: bool, strip_ansi: bool) -> Self {
+    pub fn new(timeout: u64, echo: bool) -> Self {
         Self {
             command: "sh -noprofile -norc".to_owned(),
             prompt: None,
@@ -102,7 +103,6 @@ impl InterpreterOptions {
             cinema: None,
             id: None,
             echo,
-            strip_ansi,
         }
     }
 
@@ -113,7 +113,6 @@ impl InterpreterOptions {
         options: CinemaOptions,
         timeout: u64,
         echo: bool,
-        strip_ansi: bool,
     ) -> Self {
         let mut command = format!(
             "asciinema rec {:#?}",
@@ -131,7 +130,6 @@ impl InterpreterOptions {
             cinema: Some(options),
             id: None,
             echo,
-            strip_ansi,
         }
     }
 }
@@ -245,10 +243,6 @@ impl ScriptFile {
             // Export a vanilla shell for asciinema
             let shell = format!("PS1='{}' {}", &prompt, cinema.shell);
             std::env::set_var("SHELL", shell);
-            
-            if options.strip_ansi {
-                std::env::set_var("NO_COLOR", "1");
-            }
         }
 
         let pragma =
@@ -270,18 +264,17 @@ impl ScriptFile {
             options.timeout,
             prompt,
             options.echo,
-            options.strip_ansi,
         )?;
 
         if options.cinema.is_some() {
-            p.exp_string(ASCIINEMA_WAIT)?;
+            p.expect(ASCIINEMA_WAIT)?;
             // Wait for the initial shell prompt to flush
             sleep(Duration::from_millis(50));
             tracing::debug!("asciinema ready");
         }
 
         fn type_text(
-            pty: &mut PtyReplSession,
+            pty: &mut PtySession,
             text: &str,
             cinema: &CinemaOptions,
         ) -> Result<()> {
@@ -314,7 +307,7 @@ impl ScriptFile {
         }
 
         fn exec(
-            p: &mut PtyReplSession,
+            p: &mut PtySession,
             instructions: &[Instruction<'_>],
             options: &InterpreterOptions,
             pragma: Option<&str>,
@@ -337,34 +330,35 @@ impl ScriptFile {
                         sleep(Duration::from_millis(*delay));
                     }
                     Instruction::Send(line) => {
-                        p.send(line.as_ref())?;
+                        p.send(line)?;
                     }
                     Instruction::SendLine(line) => {
                         let line = ScriptParser::interpolate(line)?;
                         if let Some(cinema) = &options.cinema {
-                            type_text(
-                                p,
-                                line.as_ref(),
-                                cinema,
-                            )?;
+                            type_text(p, line.as_ref(), cinema)?;
                         } else {
                             p.send_line(line.as_ref())?;
                         }
                     }
                     Instruction::SendControl(ctrl) => {
-                        p.send_control(*ctrl)?;
+                        let ctrl =
+                            ControlCode::try_from(*ctrl).map_err(|_| {
+                                Error::InvalidControlCode(ctrl.to_string())
+                            })?;
+                        p.send(ctrl)?;
                     }
                     Instruction::Expect(line) => {
-                        p.exp_string(line)?;
+                        p.expect(line)?;
                     }
                     Instruction::Regex(line) => {
-                        p.exp_regex(line)?;
+                        p.expect(Regex(line))?;
                     }
                     Instruction::ReadLine => {
-                        p.read_line()?;
+                        let mut line = String::new();
+                        p.read_line(&mut line)?;
                     }
                     Instruction::WaitPrompt => {
-                        p.wait_for_prompt()?;
+                        //p.wait_for_prompt()?;
                     }
                     Instruction::Flush => {
                         p.flush()?;
@@ -394,10 +388,12 @@ impl ScriptFile {
 
         if options.cinema.is_some() {
             tracing::debug!("exit");
-            p.send_control('d')?;
+            //p.send_control('d')?;
+
+            p.send(ControlCode::EndOfTransmission)?;
         } else {
             tracing::debug!("eof");
-            p.exp_eof()?;
+            p.send(ControlCode::EndOfTransmission)?;
         }
 
         Ok(())
@@ -406,11 +402,10 @@ impl ScriptFile {
 
 fn session(
     cmd: &str,
-    timeout: Option<u64>,
-    prompt: String,
+    _timeout: Option<u64>,
+    _prompt: String,
     echo: bool,
-    strip_ansi: bool,
-) -> Result<PtyReplSession> {
+) -> Result<PtySession> {
     use std::process::Command;
     let mut parts = comma::parse_command(cmd)
         .ok_or(Error::BadArguments(cmd.to_owned()))?;
@@ -418,16 +413,89 @@ fn session(
     let mut command = Command::new(prog);
     command.args(parts);
 
-    let options = Options {
-        timeout_ms: timeout,
-        strip_ansi_escape_codes: strip_ansi,
-        passthrough: echo,
+    let pty = Session::spawn(command)?;
+    let session = if echo {
+        PtySession::Logged(log(pty, std::io::stdout())?)
+    } else {
+        PtySession::Default(pty)
     };
 
-    Ok(PtyReplSession {
-        echo_on: false,
-        prompt,
-        pty_session: spawn_with_options(command, options)?,
-        quit_command: None,
-    })
+    Ok(session)
+}
+
+type LogSession = Session<UnixProcess, LogStream<PtyStream, Stdout>>;
+
+pub enum PtySession {
+    Default(Session),
+    Logged(LogSession),
+}
+
+impl PtySession {
+    pub fn send<B: AsRef<[u8]>>(&mut self, buf: B) -> io::Result<()> {
+        match self {
+            PtySession::Default(s) => s.send(buf),
+            PtySession::Logged(s) => s.send(buf),
+        }
+    }
+
+    pub fn send_line(&mut self, text: &str) -> io::Result<()> {
+        match self {
+            PtySession::Default(s) => s.send_line(text),
+            PtySession::Logged(s) => s.send_line(text),
+        }
+    }
+
+    pub fn expect<N>(
+        &mut self,
+        needle: N,
+    ) -> std::result::Result<Captures, expectrl::Error>
+    where
+        N: Needle,
+    {
+        match self {
+            PtySession::Default(s) => s.expect(needle),
+            PtySession::Logged(s) => s.expect(needle),
+        }
+    }
+}
+
+impl Write for PtySession {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        match self {
+            PtySession::Default(s) => s.write(buf),
+            PtySession::Logged(s) => s.write(buf),
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        match self {
+            PtySession::Default(s) => s.flush(),
+            PtySession::Logged(s) => s.flush(),
+        }
+    }
+}
+
+impl BufRead for PtySession {
+    fn fill_buf(&mut self) -> io::Result<&[u8]> {
+        match self {
+            PtySession::Default(s) => s.fill_buf(),
+            PtySession::Logged(s) => s.fill_buf(),
+        }
+    }
+
+    fn consume(&mut self, amt: usize) {
+        match self {
+            PtySession::Default(s) => s.consume(amt),
+            PtySession::Logged(s) => s.consume(amt),
+        }
+    }
+}
+
+impl Read for PtySession {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match self {
+            PtySession::Default(s) => s.read(buf),
+            PtySession::Logged(s) => s.read(buf),
+        }
+    }
 }

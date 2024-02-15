@@ -84,7 +84,7 @@ pub enum Instruction<'s> {
     /// Send a line of text.
     SendLine(&'s str),
     /// Send a control character.
-    SendControl(char),
+    SendControl(&'s str),
     /// Expect a string.
     Expect(&'s str),
     /// Expect a regex match.
@@ -200,13 +200,7 @@ impl ScriptParser {
                 }
                 Token::SendControl => {
                     let text = Self::parse_text(&mut lex, source, None)?;
-                    let mut it = text.chars();
-                    if let Some(c) = it.next() {
-                        cmd.push(Instruction::SendControl(c));
-                        if it.next().is_some() {
-                            panic!("too many characters");
-                        }
-                    }
+                    cmd.push(Instruction::SendControl(text));
                 }
                 Token::Wait(num) => {
                     cmd.push(Instruction::Wait(num));
