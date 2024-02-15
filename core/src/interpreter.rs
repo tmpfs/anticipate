@@ -110,6 +110,7 @@ impl InterpreterOptions {
 }
 
 /// Script file.
+#[derive(Debug)]
 pub struct ScriptFile {
     path: PathBuf,
     source: ScriptSource,

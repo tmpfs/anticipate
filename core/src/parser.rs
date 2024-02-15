@@ -140,15 +140,27 @@ impl ScriptParser {
                 Token::Include => {
                     let text =
                         Self::parse_text(&mut lex, source, None)?.trim();
-                    let path = resolve_path(base.as_ref(), text)?;
-                    let path: PathBuf = path.as_ref().into();
-                    if !path.try_exists()? {
-                        return Err(Error::Include(text.to_owned(), path));
+                    match resolve_path(base.as_ref(), text) {
+                        Ok(path) => {
+                            let path: PathBuf = path.as_ref().into();
+                            if !path.try_exists()? {
+                                return Err(Error::Include(
+                                    text.to_owned(),
+                                    path,
+                                ));
+                            }
+                            includes.push(Include {
+                                index: cmd.len(),
+                                path,
+                            });
+                        }
+                        Err(_) => {
+                            return Err(Error::Include(
+                                text.to_owned(),
+                                PathBuf::from(text),
+                            ));
+                        }
                     }
-                    includes.push(Include {
-                        index: cmd.len(),
-                        path,
-                    });
                 }
                 Token::ReadLine => {
                     cmd.push(Instruction::ReadLine);

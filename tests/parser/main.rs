@@ -196,3 +196,11 @@ fn parse_unknown_empty() -> Result<()> {
     }
     Ok(())
 }
+
+#[test]
+fn parse_include_missing() -> Result<()> {
+    let file = "tests/fixtures/bad-include.sh";
+    let result = ScriptFile::parse(file);
+    assert!(matches!(result, Err(Error::Include(_, _))));
+    Ok(())
+}
