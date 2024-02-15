@@ -1,6 +1,12 @@
-use crate::{error::LexError, Error, Result};
+use crate::{
+    error::LexError, interpreter::ScriptSource, resolve_path, Error, Result,
+};
 use logos::{Lexer, Logos};
-use std::{borrow::Cow, ops::Range};
+use std::{
+    borrow::Cow,
+    ops::Range,
+    path::{Path, PathBuf},
+};
 
 fn pragma(lex: &mut Lexer<Token>) -> Option<String> {
     let slice = lex.slice();
@@ -59,6 +65,15 @@ enum EnvVars {
     Text,
 }
 
+/// Include reference.
+#[derive(Debug)]
+pub struct Include {
+    /// Path to the file.
+    pub path: PathBuf,
+    /// Index in the parent instructions.
+    pub index: usize,
+}
+
 /// Instruction to execute.
 #[derive(Debug)]
 pub enum Instruction<'s> {
@@ -82,8 +97,8 @@ pub enum Instruction<'s> {
     Send(&'s str),
     /// Flush the output stream.
     Flush,
-    /// Include instructions from path.
-    Include(&'s str),
+    /// Include script.
+    Include(ScriptSource),
 }
 
 /// Sequence of commands to execute.
@@ -96,9 +111,19 @@ pub struct ScriptParser;
 impl ScriptParser {
     /// Parse input commands.
     pub fn parse<'s>(source: &'s str) -> Result<Instructions<'s>> {
+        let (instructions, _) = ScriptParser::parse_file(source, "")?;
+        Ok(instructions)
+    }
+
+    /// Parse input commands relative to a file path.
+    pub fn parse_file<'s>(
+        source: &'s str,
+        base: impl AsRef<Path>,
+    ) -> Result<(Instructions<'s>, Vec<Include>)> {
         let mut cmd = Vec::new();
         let mut lex = Token::lexer(source);
         let mut next_token = lex.next();
+        let mut includes = Vec::new();
         while let Some(token) = next_token.take() {
             let token = token?;
             let span = lex.span();
@@ -113,8 +138,17 @@ impl ScriptParser {
                     cmd.push(Instruction::Comment(text));
                 }
                 Token::Include => {
-                    let text = Self::parse_text(&mut lex, source, None)?;
-                    cmd.push(Instruction::Include(text));
+                    let text =
+                        Self::parse_text(&mut lex, source, None)?.trim();
+                    let path = resolve_path(base.as_ref(), text)?;
+                    let path: PathBuf = path.as_ref().into();
+                    if !path.try_exists()? {
+                        return Err(Error::Include(text.to_owned(), path));
+                    }
+                    includes.push(Include {
+                        index: cmd.len(),
+                        path,
+                    });
                 }
                 Token::ReadLine => {
                     cmd.push(Instruction::ReadLine);
@@ -173,7 +207,7 @@ impl ScriptParser {
             next_token = lex.next();
         }
 
-        Ok(cmd)
+        Ok((cmd, includes))
     }
 
     fn parse_text<'s>(

@@ -1,4 +1,4 @@
-use anticipate_core::{Error, Instruction, ScriptParser};
+use anticipate_core::{Error, Instruction, ScriptFile, ScriptParser};
 use anyhow::Result;
 
 #[test]
@@ -112,10 +112,7 @@ fn parse_send() -> Result<()> {
     let source = "#$ send echo";
     let instructions = ScriptParser::parse(source)?;
     assert_eq!(1, instructions.len());
-    assert!(matches!(
-        instructions.first(),
-        Some(Instruction::Send(_))
-    ));
+    assert!(matches!(instructions.first(), Some(Instruction::Send(_))));
     Ok(())
 }
 
@@ -124,20 +121,37 @@ fn parse_flush() -> Result<()> {
     let source = "#$ flush";
     let instructions = ScriptParser::parse(source)?;
     assert_eq!(1, instructions.len());
-    assert!(matches!(
-        instructions.first(),
-        Some(Instruction::Flush)
-    ));
+    assert!(matches!(instructions.first(), Some(Instruction::Flush)));
     Ok(())
 }
 
 #[test]
 fn parse_include() -> Result<()> {
-    let source = "#$ include ../shared/script.sh";
-    let mut instructions = ScriptParser::parse(source)?;
+    let file = "tests/fixtures/include.sh";
+    let file = ScriptFile::parse(file)?;
+    let instructions = file.instructions();
     assert_eq!(1, instructions.len());
-    if let Instruction::Include(path) = instructions.remove(0) {
-        assert_eq!("../shared/script.sh", path);
+    if let Some(Instruction::Include(source)) = instructions.get(0) {
+        if let Some(Instruction::SendLine(val)) =
+            source.borrow_instructions().get(0)
+        {
+            assert_eq!("echo hi", *val);
+        } else {
+            panic!("expected send line in include");
+        }
+
+        assert!(matches!(
+            source.borrow_instructions().get(1),
+            Some(Instruction::ReadLine)
+        ));
+
+        if let Some(Instruction::SendLine(val)) =
+            source.borrow_instructions().get(2)
+        {
+            assert_eq!("exit", *val);
+        } else {
+            panic!("expected send line in include");
+        }
     } else {
         panic!("expected include instruction");
     }
