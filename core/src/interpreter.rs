@@ -16,7 +16,6 @@ use unicode_segmentation::UnicodeSegmentation;
 
 const ASCIINEMA_WAIT: &str =
     r#"asciinema: press <ctrl-d> or type "exit" when you're done"#;
-const EXIT: &str = "exit";
 const PROMPT: &str = "➜ ";
 
 struct Source<T>(T);
@@ -71,6 +70,8 @@ pub struct InterpreterOptions {
     pub prompt: Option<String>,
     /// Echo to stdout.
     pub echo: bool,
+    /// Strip ANSI from pty output.
+    pub strip_ansi: bool,
 }
 
 impl Default for InterpreterOptions {
@@ -83,13 +84,14 @@ impl Default for InterpreterOptions {
             cinema: None,
             id: None,
             echo: false,
+            strip_ansi: false,
         }
     }
 }
 
 impl InterpreterOptions {
     /// Create interpreter options.
-    pub fn new(timeout: u64, echo: bool) -> Self {
+    pub fn new(timeout: u64, echo: bool, strip_ansi: bool) -> Self {
         Self {
             command: "sh -noprofile -norc".to_owned(),
             prompt: None,
@@ -100,6 +102,7 @@ impl InterpreterOptions {
             cinema: None,
             id: None,
             echo,
+            strip_ansi,
         }
     }
 
@@ -110,6 +113,7 @@ impl InterpreterOptions {
         options: CinemaOptions,
         timeout: u64,
         echo: bool,
+        strip_ansi: bool,
     ) -> Self {
         let mut command = format!(
             "asciinema rec {:#?}",
@@ -127,6 +131,7 @@ impl InterpreterOptions {
             cinema: Some(options),
             id: None,
             echo,
+            strip_ansi,
         }
     }
 }
@@ -240,6 +245,10 @@ impl ScriptFile {
             // Export a vanilla shell for asciinema
             let shell = format!("PS1='{}' {}", &prompt, cinema.shell);
             std::env::set_var("SHELL", shell);
+            
+            if options.strip_ansi {
+                std::env::set_var("NO_COLOR", "1");
+            }
         }
 
         let pragma =
@@ -256,7 +265,13 @@ impl ScriptFile {
         };
 
         tracing::info!(exec = %exec_cmd, "run");
-        let mut p = session(&exec_cmd, options.timeout, prompt)?;
+        let mut p = session(
+            &exec_cmd,
+            options.timeout,
+            prompt,
+            options.echo,
+            options.strip_ansi,
+        )?;
 
         if options.cinema.is_some() {
             p.exp_string(ASCIINEMA_WAIT)?;
@@ -269,15 +284,10 @@ impl ScriptFile {
             pty: &mut PtyReplSession,
             text: &str,
             cinema: &CinemaOptions,
-            echo: bool,
         ) -> Result<()> {
             for c in UnicodeSegmentation::graphemes(text, true) {
                 pty.send(c)?;
                 pty.flush()?;
-
-                if echo {
-                    println!("> {}", c);
-                }
 
                 let mut source = Source(rand::rngs::OsRng);
                 let gaussian = Gaussian::new(0.0, cinema.deviation);
@@ -300,10 +310,6 @@ impl ScriptFile {
             pty.send("\n")?;
             pty.flush()?;
 
-            if echo {
-                println!("> {}", '\n');
-            }
-
             Ok(())
         }
 
@@ -321,11 +327,8 @@ impl ScriptFile {
                             (&options.cinema, &pragma)
                         {
                             if cinema.type_pragma {
-                                type_text(p, cmd, cinema, options.echo)?;
+                                type_text(p, cmd, cinema)?;
                             } else {
-                                if options.echo {
-                                    println!("> {}", cmd);
-                                }
                                 p.send_line(cmd)?;
                             }
                         }
@@ -334,9 +337,6 @@ impl ScriptFile {
                         sleep(Duration::from_millis(*delay));
                     }
                     Instruction::Send(line) => {
-                        if options.echo {
-                            println!("> {}", line);
-                        }
                         p.send(line.as_ref())?;
                     }
                     Instruction::SendLine(line) => {
@@ -346,35 +346,22 @@ impl ScriptFile {
                                 p,
                                 line.as_ref(),
                                 cinema,
-                                options.echo,
                             )?;
                         } else {
                             p.send_line(line.as_ref())?;
-                            if options.echo {
-                                println!("> {}", line);
-                            }
                         }
                     }
                     Instruction::SendControl(ctrl) => {
                         p.send_control(*ctrl)?;
                     }
                     Instruction::Expect(line) => {
-                        let output = p.exp_string(line)?;
-                        if options.echo {
-                            println!("< {}", output);
-                        }
+                        p.exp_string(line)?;
                     }
                     Instruction::Regex(line) => {
-                        let (output, _) = p.exp_regex(line)?;
-                        if options.echo {
-                            println!("< {}", output);
-                        }
+                        p.exp_regex(line)?;
                     }
                     Instruction::ReadLine => {
-                        let line = p.read_line()?;
-                        if options.echo {
-                            println!("< {}", line);
-                        }
+                        p.read_line()?;
                     }
                     Instruction::WaitPrompt => {
                         p.wait_for_prompt()?;
@@ -407,7 +394,7 @@ impl ScriptFile {
 
         if options.cinema.is_some() {
             tracing::debug!("exit");
-            p.send_line(EXIT)?;
+            p.send_control('d')?;
         } else {
             tracing::debug!("eof");
             p.exp_eof()?;
@@ -421,7 +408,8 @@ fn session(
     cmd: &str,
     timeout: Option<u64>,
     prompt: String,
-    //strip_ansi: bool,
+    echo: bool,
+    strip_ansi: bool,
 ) -> Result<PtyReplSession> {
     use std::process::Command;
     let mut parts = comma::parse_command(cmd)
@@ -432,15 +420,14 @@ fn session(
 
     let options = Options {
         timeout_ms: timeout,
-        strip_ansi_escape_codes: true,
+        strip_ansi_escape_codes: strip_ansi,
+        passthrough: echo,
     };
 
-    let ed = PtyReplSession {
+    Ok(PtyReplSession {
         echo_on: false,
         prompt,
         pty_session: spawn_with_options(command, options)?,
         quit_command: None,
-    };
-
-    Ok(ed)
+    })
 }

@@ -578,7 +578,6 @@ checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
 [[package]]
 name = "rexpect"
 version = "0.5.0"
-source = "git+https://github.com/rust-cli/rexpect.git#9eb61dd444f25307639367ac7e1a49d5a1915d55"
 dependencies = [
  "comma",
  "nix",

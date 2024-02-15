@@ -1,3 +1,2 @@
 ls -la
-#$ waitprompt
-exit
+#$ wait 500
