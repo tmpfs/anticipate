@@ -259,12 +259,8 @@ impl ScriptFile {
         };
 
         tracing::info!(exec = %exec_cmd, "run");
-        let mut p = session(
-            &exec_cmd,
-            options.timeout,
-            prompt,
-            options.echo,
-        )?;
+        let mut p =
+            session(&exec_cmd, options.timeout, prompt, options.echo)?;
 
         if options.cinema.is_some() {
             p.expect(ASCIINEMA_WAIT)?;
@@ -393,7 +389,10 @@ impl ScriptFile {
             p.send(ControlCode::EndOfTransmission)?;
         } else {
             tracing::debug!("eof");
-            p.send(ControlCode::EndOfTransmission)?;
+            // If it's not a shell, ie: has a pragma command
+            // which is a script this will fail with I/O error
+            // but we can safely ignore it
+            let _ = p.send(ControlCode::EndOfTransmission);
         }
 
         Ok(())

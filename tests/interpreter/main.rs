@@ -15,7 +15,6 @@ fn interpret_teletype() -> Result<()> {
     Ok(())
 }
 
-#[ignore = "needs fixing"]
 #[test]
 fn interpret_env_var() -> Result<()> {
     std::env::set_var("MOCK_PASSWORD", "foobar");
