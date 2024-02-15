@@ -12,3 +12,27 @@ pub use parser::*;
 
 /// Result type for the parser.
 pub type Result<T> = std::result::Result<T, Error>;
+
+use std::{
+    borrow::Cow,
+    path::{Path, PathBuf},
+};
+
+/// Resolve a possibly relative path.
+pub(crate) fn resolve_path<'i>(
+    base: impl AsRef<Path>,
+    input: &'i str,
+) -> Result<Cow<'i, str>> {
+    let path = PathBuf::from(input);
+    if path.is_relative() {
+        if let Some(parent) = base.as_ref().parent() {
+            let new_path = parent.join(input);
+            let path = new_path.canonicalize()?;
+            Ok(Cow::Owned(path.to_string_lossy().as_ref().to_owned()))
+        } else {
+            Ok(Cow::Borrowed(input))
+        }
+    } else {
+        Ok(Cow::Borrowed(input))
+    }
+}

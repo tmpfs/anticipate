@@ -1,4 +1,7 @@
-use crate::{Error, Instruction, Instructions, Result, ScriptParser};
+use crate::{
+    resolve_path, Error, Include, Instruction, Instructions, Result,
+    ScriptParser,
+};
 use ouroboros::self_referencing;
 use probability::prelude::*;
 use rexpect::{session::PtySession, spawn};
@@ -111,6 +114,7 @@ impl InterpreterOptions {
 pub struct ScriptFile {
     path: PathBuf,
     source: ScriptSource,
+    includes: Vec<ScriptSource>,
 }
 
 impl ScriptFile {
@@ -147,17 +151,53 @@ impl ScriptFile {
     pub fn parse_files(paths: Vec<PathBuf>) -> Result<Vec<ScriptFile>> {
         let mut results = Vec::new();
         for path in paths {
-            tracing::info!(path = ?path, "parse file");
-            let source = std::fs::read_to_string(&path)?;
-            let source = ScriptSourceTryBuilder {
-                source,
-                instructions_builder: |source| ScriptParser.parse(source),
-            }
-            .try_build()?;
-
-            results.push(ScriptFile { path, source });
+            let script = Self::parse(path)?;
+            results.push(script);
         }
         Ok(results)
+    }
+
+    /// Parse a single file.
+    pub fn parse(path: impl AsRef<Path>) -> Result<ScriptFile> {
+        tracing::info!(path = ?path.as_ref(), "parse file");
+        let mut includes = Vec::new();
+
+        let source = Self::parse_source(path.as_ref())?;
+
+        Ok(ScriptFile {
+            path: path.as_ref().to_owned(),
+            source,
+            includes,
+        })
+    }
+
+    fn parse_source(path: impl AsRef<Path>) -> Result<ScriptSource> {
+        let mut includes = Vec::new();
+        let source = std::fs::read_to_string(path.as_ref())?;
+        let mut source = ScriptSourceTryBuilder {
+            source,
+            instructions_builder: |source| {
+                let (instructions, mut file_includes) =
+                    ScriptParser::parse_file(source, path.as_ref())?;
+                includes.append(&mut file_includes);
+                Ok::<_, Error>(instructions)
+            },
+        }
+        .try_build()?;
+
+        for raw in includes {
+            let src = Self::parse_source(&raw.path)?;
+            let instruction = Instruction::Include(src);
+            source.with_instructions_mut(|i| {
+                if raw.index < i.len() {
+                    i.insert(raw.index, instruction);
+                } else {
+                    i.push(instruction);
+                }
+            });
+        }
+
+        Ok(source)
     }
 
     /// Execute the command and instructions in a pseudo-terminal
@@ -180,19 +220,20 @@ impl ScriptFile {
                 let pragma = if let Some(Instruction::Pragma(cmd)) =
                     instructions.first()
                 {
-                    Some(self.resolve_path(cmd)?)
+                    Some(resolve_path(&self.path, cmd)?)
                 } else {
                     None
                 };
 
-                let exec = if let (false, Some(cmd)) = (is_cinema, &pragma) {
-                    cmd
-                } else {
-                    &cmd
-                };
+                let exec_cmd =
+                    if let (false, Some(pragma)) = (is_cinema, &pragma) {
+                        pragma.as_ref().to_owned()
+                    } else {
+                        cmd.to_owned()
+                    };
 
-                tracing::info!(exec = %exec, "run");
-                let mut p = spawn(exec, options.timeout)?;
+                tracing::info!(exec = %exec_cmd, "run");
+                let mut p = spawn(&exec_cmd, options.timeout)?;
 
                 if options.cinema.is_some() {
                     p.exp_string(ASCIINEMA_WAIT)?;
@@ -202,13 +243,13 @@ impl ScriptFile {
                 }
 
                 fn type_text(
-                    p: &mut PtySession,
+                    pty: &mut PtySession,
                     text: &str,
                     cinema: &CinemaOptions,
                 ) -> Result<()> {
                     for c in UnicodeSegmentation::graphemes(text, true) {
-                        p.send(c)?;
-                        p.flush()?;
+                        pty.send(c)?;
+                        pty.flush()?;
 
                         let mut source = Source(rand::rngs::OsRng);
                         let gaussian = Gaussian::new(0.0, cinema.deviation);
@@ -227,58 +268,82 @@ impl ScriptFile {
 
                         sleep(Duration::from_millis(delay));
                     }
-                    p.send("\n")?;
-                    p.flush()?;
+                    pty.send("\n")?;
+                    pty.flush()?;
                     Ok(())
                 }
 
-                for cmd in instructions.iter() {
-                    tracing::debug!(instruction = ?cmd);
-                    match cmd {
-                        Instruction::Pragma(_) => {
-                            if let (Some(cinema), Some(cmd)) =
-                                (&options.cinema, &pragma)
-                            {
-                                if cinema.type_pragma {
-                                    type_text(&mut p, &cmd, cinema)?;
-                                } else {
-                                    p.send_line(&cmd)?;
+                fn exec(
+                    p: &mut PtySession,
+                    instructions: &Vec<Instruction<'_>>,
+                    options: &InterpreterOptions,
+                    pragma: Option<&str>,
+                ) -> Result<()> {
+                    for cmd in instructions.iter() {
+                        tracing::debug!(instruction = ?cmd);
+                        match cmd {
+                            Instruction::Pragma(_) => {
+                                if let (Some(cinema), Some(cmd)) =
+                                    (&options.cinema, &pragma)
+                                {
+                                    if cinema.type_pragma {
+                                        type_text(p, &cmd, cinema)?;
+                                    } else {
+                                        p.send_line(&cmd)?;
+                                    }
                                 }
                             }
-                        }
-                        Instruction::Wait(delay) => {
-                            sleep(Duration::from_millis(*delay));
-                        }
-                        Instruction::Send(line) => {
-                            p.send(line.as_ref())?;
-                        }
-                        Instruction::SendLine(line) => {
-                            let line = ScriptParser::interpolate(*line)?;
-                            if let Some(cinema) = &options.cinema {
-                                type_text(&mut p, line.as_ref(), cinema)?;
-                            } else {
-                                p.send_line(line.as_ref())?;
+                            Instruction::Wait(delay) => {
+                                sleep(Duration::from_millis(*delay));
+                            }
+                            Instruction::Send(line) => {
+                                p.send(line.as_ref())?;
+                            }
+                            Instruction::SendLine(line) => {
+                                let line = ScriptParser::interpolate(*line)?;
+                                if let Some(cinema) = &options.cinema {
+                                    type_text(p, line.as_ref(), cinema)?;
+                                } else {
+                                    p.send_line(line.as_ref())?;
+                                }
+                            }
+                            Instruction::SendControl(ctrl) => {
+                                p.send_control(*ctrl)?;
+                            }
+                            Instruction::Expect(line) => {
+                                p.exp_string(line)?;
+                            }
+                            Instruction::Regex(line) => {
+                                p.exp_regex(line)?;
+                            }
+                            Instruction::ReadLine => {
+                                p.read_line()?;
+                            }
+                            Instruction::Flush => {
+                                p.flush()?;
+                            }
+                            Instruction::Comment(_) => {}
+                            Instruction::Include(source) => {
+                                exec(
+                                    p,
+                                    source.borrow_instructions(),
+                                    options,
+                                    pragma,
+                                )?;
                             }
                         }
-                        Instruction::SendControl(ctrl) => {
-                            p.send_control(*ctrl)?;
-                        }
-                        Instruction::Expect(line) => {
-                            p.exp_string(line)?;
-                        }
-                        Instruction::Regex(line) => {
-                            p.exp_regex(line)?;
-                        }
-                        Instruction::ReadLine => {
-                            p.read_line()?;
-                        }
-                        Instruction::Flush => {
-                            p.flush()?;
-                        }
-                        Instruction::Comment(_) => {}
+                        sleep(Duration::from_millis(25));
                     }
-                    sleep(Duration::from_millis(25));
+
+                    Ok(())
                 }
+
+                exec(
+                    &mut p,
+                    instructions,
+                    &options,
+                    pragma.as_ref().map(|i| i.as_ref()),
+                )?;
 
                 if options.cinema.is_some() {
                     tracing::debug!("exit");
@@ -296,17 +361,5 @@ impl ScriptFile {
                 eprintln!("{:#?}", e);
             }
         });
-    }
-
-    fn resolve_path(&self, input: &str) -> Result<String> {
-        let path = PathBuf::from(input);
-        if path.is_relative() {
-            if let Some(parent) = self.path.parent() {
-                let new_path = parent.join(input);
-                let path = new_path.canonicalize()?;
-                return Ok(path.to_string_lossy().as_ref().to_owned());
-            }
-        }
-        Ok(input.to_owned())
     }
 }
