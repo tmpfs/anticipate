@@ -165,7 +165,6 @@ impl ScriptFile {
 
     /// Parse a single file.
     pub fn parse(path: impl AsRef<Path>) -> Result<ScriptFile> {
-        tracing::info!(path = ?path.as_ref(), "parse file");
         let source = Self::parse_source(path.as_ref())?;
         Ok(ScriptFile {
             path: path.as_ref().to_owned(),
