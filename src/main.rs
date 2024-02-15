@@ -308,7 +308,7 @@ fn run(input_file: &PathBuf, file_name: &str, timeout: u64) -> Result<()> {
     let script = ScriptFile::parse(input_file)?;
     let mut options = InterpreterOptions::new(timeout);
     options.id = Some(file_name.to_owned());
-    script.run(&options)?;
+    script.run(options)?;
     Ok(())
 }
 
@@ -330,7 +330,7 @@ fn record(
     );
 
     options.id = Some(file_name.to_owned());
-    script.run(&options)?;
+    script.run(options)?;
 
     if trim_lines > 0 {
         trim_exit(&output_file, trim_lines)?;

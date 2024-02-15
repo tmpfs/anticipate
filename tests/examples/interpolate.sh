@@ -1,3 +1,2 @@
 echo $NAME
 #$ readline
-exit

@@ -28,13 +28,13 @@ fn integer(lex: &mut Lexer<Token>) -> Option<u64> {
 enum Token {
     #[regex("#![^\n]+", callback = pragma)]
     Pragma(String),
-    #[regex("#[$]\\s+sendline\\s+")]
+    #[regex("#[$]\\s+sendline\\s")]
     SendLine,
-    #[regex("#[$]\\s+sendcontrol\\s+")]
+    #[regex("#[$]\\s+sendcontrol\\s")]
     SendControl,
-    #[regex("#[$]\\s+expect\\s+")]
+    #[regex("#[$]\\s+expect\\s")]
     Expect,
-    #[regex("#[$]\\s+regex\\s+")]
+    #[regex("#[$]\\s+regex\\s")]
     Regex,
     #[regex("#[$]\\s+wait\\s+([0-9]+)", callback = integer)]
     Wait(u64),
@@ -126,8 +126,9 @@ impl ScriptParser {
         let mut includes = Vec::new();
         while let Some(token) = next_token.take() {
             let token = token?;
+            
             let span = lex.span();
-            tracing::trace!(token = ?token, "parse");
+            tracing::debug!(token = ?token, "parse");
             match token {
                 Token::Command => {
                     let text = Self::parse_text(&mut lex, source, None)?;

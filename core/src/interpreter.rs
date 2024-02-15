@@ -67,15 +67,19 @@ pub struct InterpreterOptions {
     pub cinema: Option<CinemaOptions>,
     /// Identifier.
     pub id: Option<String>,
+    /// Echo to stdout.
+    pub echo: bool,
 }
 
 impl Default for InterpreterOptions {
     fn default() -> Self {
         Self {
             command: "sh".to_owned(),
+            //command: "PS1='$ ' sh -noprofile -norc".to_owned(),
             timeout: Some(5000),
             cinema: None,
             id: None,
+            echo: true,
         }
     }
 }
@@ -85,9 +89,11 @@ impl InterpreterOptions {
     pub fn new(timeout: u64) -> Self {
         Self {
             command: "sh".to_owned(),
+            //command: "PS1='$ ' sh -noprofile -norc".to_owned(),
             timeout: Some(timeout),
             cinema: None,
             id: None,
+            echo: true,
         }
     }
 
@@ -112,6 +118,7 @@ impl InterpreterOptions {
             timeout: Some(timeout),
             cinema: Some(options),
             id: None,
+            echo: true,
         }
     }
 }
@@ -203,7 +210,7 @@ impl ScriptFile {
 
     /// Execute the command and instructions in a pseudo-terminal
     /// running in a thread.
-    pub fn run(&self, options: &InterpreterOptions) -> Result<()> {
+    pub fn run(&self, options: InterpreterOptions) -> Result<()> {
         let cmd = options.command.clone();
 
         let span = if let Some(id) = &options.id {
@@ -250,10 +257,15 @@ impl ScriptFile {
             pty: &mut PtySession,
             text: &str,
             cinema: &CinemaOptions,
+            echo: bool,
         ) -> Result<()> {
             for c in UnicodeSegmentation::graphemes(text, true) {
                 pty.send(c)?;
                 pty.flush()?;
+
+                if echo {
+                    //println!("> {}", c);
+                }
 
                 let mut source = Source(rand::rngs::OsRng);
                 let gaussian = Gaussian::new(0.0, cinema.deviation);
@@ -272,8 +284,14 @@ impl ScriptFile {
 
                 sleep(Duration::from_millis(delay));
             }
+
             pty.send("\n")?;
             pty.flush()?;
+
+            if echo {
+                //println!("> {}", '\n');
+            }
+
             Ok(())
         }
 
@@ -291,8 +309,11 @@ impl ScriptFile {
                             (&options.cinema, &pragma)
                         {
                             if cinema.type_pragma {
-                                type_text(p, cmd, cinema)?;
+                                type_text(p, cmd, cinema, options.echo)?;
                             } else {
+                                if options.echo {
+                                    //println!("> {}", cmd);
+                                }
                                 p.send_line(cmd)?;
                             }
                         }
@@ -301,13 +322,19 @@ impl ScriptFile {
                         sleep(Duration::from_millis(*delay));
                     }
                     Instruction::Send(line) => {
+                        if options.echo {
+                            //println!("> {}", line);
+                        }
                         p.send(line.as_ref())?;
                     }
                     Instruction::SendLine(line) => {
                         let line = ScriptParser::interpolate(line)?;
                         if let Some(cinema) = &options.cinema {
-                            type_text(p, line.as_ref(), cinema)?;
+                            type_text(p, line.as_ref(), cinema, options.echo)?;
                         } else {
+                            if options.echo {
+                                //println!("> {}", line);
+                            }
                             p.send_line(line.as_ref())?;
                         }
                     }
@@ -315,13 +342,22 @@ impl ScriptFile {
                         p.send_control(*ctrl)?;
                     }
                     Instruction::Expect(line) => {
-                        p.exp_string(line)?;
+                        let output = p.exp_string(line)?;
+                        if options.echo {
+                            //println!("< {}", output);
+                        }
                     }
                     Instruction::Regex(line) => {
-                        p.exp_regex(line)?;
+                        let (output, re) = p.exp_regex(line)?;
+                        if options.echo {
+                            //println!("< {}", output);
+                        }
                     }
                     Instruction::ReadLine => {
-                        p.read_line()?;
+                        let line = p.read_line()?;
+                        if options.echo {
+                            //println!("< {}", line);
+                        }
                     }
                     Instruction::Flush => {
                         p.flush()?;
@@ -336,9 +372,9 @@ impl ScriptFile {
                         )?;
                     }
                 }
-                sleep(Duration::from_millis(25));
-            }
 
+                //sleep(Duration::from_millis(100));
+            }
             Ok(())
         }
 
