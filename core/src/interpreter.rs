@@ -5,7 +5,7 @@ use expectrl::{
     process::unix::{PtyStream, UnixProcess},
     session::{log, Session},
     stream::log::LogStream,
-    Captures, ControlCode, Eof, Needle, Regex, WaitStatus,
+    Captures, ControlCode, Needle, Regex,
 };
 use ouroboros::self_referencing;
 use probability::prelude::*;
