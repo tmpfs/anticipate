@@ -138,7 +138,9 @@ fn start() -> Result<()> {
             }
             let scripts = ScriptFile::parse_files(input)?;
             for script in scripts {
-                let options = InterpreterOptions::new(timeout);
+                let file_name = script.path().file_name().unwrap();
+                let mut options = InterpreterOptions::new(timeout);
+                options.id = Some(file_name.to_string_lossy().into_owned());
                 script.run(options);
             }
         }
@@ -184,12 +186,14 @@ fn start() -> Result<()> {
                     rows,
                 };
 
-                let options = InterpreterOptions::new_recording(
+                let mut options = InterpreterOptions::new_recording(
                     output_file.clone(),
                     overwrite,
                     cinema,
                     timeout,
                 );
+
+                options.id = Some(file_name.to_string_lossy().into_owned());
 
                 script.run(options);
 

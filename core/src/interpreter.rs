@@ -9,6 +9,7 @@ use std::{
     thread::{self, sleep},
     time::Duration,
 };
+use tracing::{span, Level};
 use unicode_segmentation::UnicodeSegmentation;
 
 struct Source<T>(T);
@@ -63,6 +64,8 @@ pub struct InterpreterOptions {
     pub timeout: Option<u64>,
     /// Options for asciinema.
     pub cinema: Option<CinemaOptions>,
+    /// Identifier.
+    pub id: Option<String>,
 }
 
 impl Default for InterpreterOptions {
@@ -71,6 +74,7 @@ impl Default for InterpreterOptions {
             command: "sh".to_owned(),
             timeout: Some(5000),
             cinema: None,
+            id: None,
         }
     }
 }
@@ -82,6 +86,7 @@ impl InterpreterOptions {
             command: "sh".to_owned(),
             timeout: Some(timeout),
             cinema: None,
+            id: None,
         }
     }
 
@@ -105,6 +110,7 @@ impl InterpreterOptions {
             command,
             timeout: Some(timeout),
             cinema: Some(options),
+            id: None,
         }
     }
 }
@@ -202,6 +208,15 @@ impl ScriptFile {
             let cmd = options.command.clone();
 
             let handle = s.spawn(move || {
+                
+                let span = if let Some(id) = &options.id {
+                    span!(Level::DEBUG, "run", id = id)
+                } else {
+                    span!(Level::DEBUG, "run")
+                };
+
+                let _enter = span.enter();
+
                 let instructions = self.source.borrow_instructions();
                 let is_cinema = options.cinema.is_some();
 
