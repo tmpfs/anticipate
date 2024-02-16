@@ -2,7 +2,7 @@
 
 Script based automation using [expectrl](https://docs.rs/expectrl/) with support for [asciinema][].
 
-Perfect for demos of CLI tools and useful for automating integration testing.
+Perfect for demos and automating integration testing of command line interfaces.
 
 ## Install
 
@@ -32,13 +32,13 @@ See the progam help for more options.
 mkdir -p target/server/accounts
 #$ readline
 
-sos-server init target/config.toml --path server/accounts
+server init target/config.toml --path server/accounts
 #$ readline
 
 cat target/config.toml
 #$ expect path = "server/accounts"
 
-sos-server start target/config.toml
+server start target/config.toml
 #$ sendcontrol ^C
 ```
 
@@ -57,13 +57,11 @@ sos-server start target/config.toml
 * [clear](#clear) - `#$ clear`
 * [include](#include) - `#$ include ../shared.sh`
 
-The syntax is inspired by [asciinema-automation](https://github.com/PierreMarchand20/asciinema_automation/).
-
 Environment variables are interpolated for commands sent to the pseudo terminal which makes it easier to share values across scripts. 
 
 ```
 export NAME=foo
-anticipate rec target tests/examples/interpolate.sh
+anticipate rec -o target tests/examples/interpolate.sh
 asciinema play target/interpolate.cast
 ```
 
@@ -176,6 +174,15 @@ Include instructions from a script file:
 ```
 
 Paths are resolved relative to the parent directory of the script file.
+
+## See Also
+
+* [Autocast](https://github.com/k9withabone/autocast) if you prefer a YAML syntax
+* [Asciinema Integrations](https://docs.asciinema.org/integrations/) for other asciinema tools 
+
+## Credits
+
+The syntax is inspired by [asciinema-automation](https://github.com/PierreMarchand20/asciinema_automation/).
 
 ## License
 

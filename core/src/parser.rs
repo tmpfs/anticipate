@@ -8,8 +8,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-//\033c
-
 fn pragma(lex: &mut Lexer<Token>) -> Option<String> {
     let slice = lex.slice();
     let value = &slice[2..];
