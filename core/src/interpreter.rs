@@ -361,7 +361,7 @@ impl ScriptFile {
                         let mut line = String::new();
                         p.read_line(&mut line)?;
                     }
-                    Instruction::Prompt => {
+                    Instruction::Wait => {
                         p.expect_prompt()?;
                     }
                     Instruction::Clear => {

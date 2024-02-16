@@ -127,6 +127,24 @@ fn parse_flush() -> Result<()> {
 }
 
 #[test]
+fn parse_wait() -> Result<()> {
+    let source = "#$ wait";
+    let instructions = ScriptParser::parse(source)?;
+    assert_eq!(1, instructions.len());
+    assert!(matches!(instructions.first(), Some(Instruction::Wait)));
+    Ok(())
+}
+
+#[test]
+fn parse_clear() -> Result<()> {
+    let source = "#$ clear";
+    let instructions = ScriptParser::parse(source)?;
+    assert_eq!(1, instructions.len());
+    assert!(matches!(instructions.first(), Some(Instruction::Clear)));
+    Ok(())
+}
+
+#[test]
 fn parse_include() -> Result<()> {
     let file = "tests/fixtures/include.sh";
     let file = ScriptFile::parse(file)?;
@@ -168,11 +186,11 @@ fn parse_include_many() -> Result<()> {
     assert!(matches!(it.next(), Some(Instruction::Comment(_))));
     assert!(matches!(it.next(), Some(Instruction::SendLine(_))));
     assert!(matches!(it.next(), Some(Instruction::Include(_))));
-    assert!(matches!(it.next(), Some(Instruction::Prompt)));
+    assert!(matches!(it.next(), Some(Instruction::Wait)));
     assert!(matches!(it.next(), Some(Instruction::Comment(_))));
     assert!(matches!(it.next(), Some(Instruction::SendLine(_))));
     assert!(matches!(it.next(), Some(Instruction::Include(_))));
-    assert!(matches!(it.next(), Some(Instruction::Prompt)));
+    assert!(matches!(it.next(), Some(Instruction::Wait)));
     Ok(())
 }
 

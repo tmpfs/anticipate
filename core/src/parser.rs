@@ -43,7 +43,7 @@ enum Token {
     #[regex("#[$]\\s+readline\\s*")]
     ReadLine,
     #[regex("#[$]\\s+wait\\s*")]
-    Prompt,
+    Wait,
     #[regex("#[$]\\s+clear\\s*")]
     Clear,
     #[regex("#[$]\\s+send ")]
@@ -100,7 +100,7 @@ pub enum Instruction<'s> {
     /// Read a line of output.
     ReadLine,
     /// Wait for the prompt.
-    Prompt,
+    Wait,
     /// Clear the screen.
     Clear,
     /// Send text, the output stream is not flushed.
@@ -178,8 +178,8 @@ impl ScriptParser {
                 Token::ReadLine => {
                     cmd.push(Instruction::ReadLine);
                 }
-                Token::Prompt => {
-                    cmd.push(Instruction::Prompt);
+                Token::Wait => {
+                    cmd.push(Instruction::Wait);
                 }
                 Token::Clear => {
                     cmd.push(Instruction::Clear);
