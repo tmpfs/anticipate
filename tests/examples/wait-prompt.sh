@@ -1,0 +1,2 @@
+cat Cargo.toml
+#$ wait

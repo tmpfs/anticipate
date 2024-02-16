@@ -36,12 +36,12 @@ enum Token {
     Expect,
     #[regex("#[$]\\s+regex\\s")]
     Regex,
-    #[regex("#[$]\\s+wait\\s+([0-9]+)", callback = integer)]
-    Wait(u64),
+    #[regex("#[$]\\s+sleep\\s+([0-9]+)", callback = integer)]
+    Sleep(u64),
     #[regex("#[$]\\s+readline\\s*")]
     ReadLine,
-    #[regex("#[$]\\s+waitprompt\\s*")]
-    WaitPrompt,
+    #[regex("#[$]\\s+wait\\s*")]
+    Prompt,
     #[regex("#[$]\\s+send ")]
     Send,
     #[regex("#[$]\\s+flush\\s*")]
@@ -89,14 +89,14 @@ pub enum Instruction<'s> {
     Expect(&'s str),
     /// Expect a regex match.
     Regex(&'s str),
-    /// Wait a while.
-    Wait(u64),
+    /// Sleep a while.
+    Sleep(u64),
     /// Comment text.
     Comment(&'s str),
     /// Read a line of output.
     ReadLine,
     /// Wait for the prompt.
-    WaitPrompt,
+    Prompt,
     /// Send text, the output stream is not flushed.
     Send(&'s str),
     /// Flush the output stream.
@@ -170,8 +170,8 @@ impl ScriptParser {
                 Token::ReadLine => {
                     cmd.push(Instruction::ReadLine);
                 }
-                Token::WaitPrompt => {
-                    cmd.push(Instruction::WaitPrompt);
+                Token::Prompt => {
+                    cmd.push(Instruction::Prompt);
                 }
                 Token::Pragma(pragma) => {
                     if !cmd.is_empty() {
@@ -202,8 +202,8 @@ impl ScriptParser {
                     let text = Self::parse_text(&mut lex, source, None)?;
                     cmd.push(Instruction::SendControl(text));
                 }
-                Token::Wait(num) => {
-                    cmd.push(Instruction::Wait(num));
+                Token::Sleep(num) => {
+                    cmd.push(Instruction::Sleep(num));
                 }
                 // Unhandled text is send line
                 Token::Text => {

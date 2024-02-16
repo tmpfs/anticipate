@@ -50,7 +50,7 @@ sos-server start target/config.toml
 * [expect](#expect) - `#$ expect Documents`
 * [regex](#regex) - `#$ regex [0-9]`
 * [readline](#read-line) - `#$ readline`
-* [wait](#wait) - `#$ wait 500`
+* [sleep](#sleep) - `#$ sleep 500`
 * [send](#send) - `#$ send echo`
 * [flush](#flush) - `#$ flush`
 * [include](#include) - `#$ include ../shared.sh`
@@ -125,12 +125,12 @@ Read a line of program output:
 #$ readline
 ```
 
-### Wait
+### Sleep
 
-To wait for a number of milliseconds:
+Wait for a number of milliseconds:
 
 ```
-#$ wait 500
+#$ sleep 500
 ```
 
 ### Send

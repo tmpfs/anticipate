@@ -2,14 +2,14 @@ use crate::{
     resolve_path, Error, Instruction, Instructions, Result, ScriptParser,
 };
 use expectrl::{
-    process::unix::{PtyStream, UnixProcess},
-    session::{log, Session},
-    stream::log::LogStream,
-    Captures, ControlCode, Needle, Regex,
+    session::{log, Session, PtySession},
+    ControlCode, Regex,
+    repl::ReplSession,
+    StreamSink,
 };
 use ouroboros::self_referencing;
 use probability::prelude::*;
-use std::io::{self, BufRead, Read, Stdout, Write};
+use std::io::{BufRead, Write};
 use std::{
     path::{Path, PathBuf},
     thread::sleep,
@@ -20,6 +20,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 const ASCIINEMA_WAIT: &str =
     r#"asciinema: press <ctrl-d> or type "exit" when you're done"#;
+
 const PROMPT: &str = "➜ ";
 
 struct Source<T>(T);
@@ -270,7 +271,7 @@ impl ScriptFile {
         }
 
         fn type_text(
-            pty: &mut PtySession,
+            pty: &mut ReplSession,
             text: &str,
             cinema: &CinemaOptions,
         ) -> Result<()> {
@@ -303,7 +304,7 @@ impl ScriptFile {
         }
 
         fn exec(
-            p: &mut PtySession,
+            p: &mut ReplSession,
             instructions: &[Instruction<'_>],
             options: &InterpreterOptions,
             pragma: Option<&str>,
@@ -322,7 +323,7 @@ impl ScriptFile {
                             }
                         }
                     }
-                    Instruction::Wait(delay) => {
+                    Instruction::Sleep(delay) => {
                         sleep(Duration::from_millis(*delay));
                     }
                     Instruction::Send(line) => {
@@ -353,8 +354,8 @@ impl ScriptFile {
                         let mut line = String::new();
                         p.read_line(&mut line)?;
                     }
-                    Instruction::WaitPrompt => {
-                        //p.wait_for_prompt()?;
+                    Instruction::Prompt => {
+                        p.expect_prompt()?;
                     }
                     Instruction::Flush => {
                         p.flush()?;
@@ -402,9 +403,9 @@ impl ScriptFile {
 fn session(
     cmd: &str,
     _timeout: Option<u64>,
-    _prompt: String,
+    prompt: String,
     echo: bool,
-) -> Result<PtySession> {
+) -> Result<ReplSession> {
     use std::process::Command;
     let mut parts = comma::parse_command(cmd)
         .ok_or(Error::BadArguments(cmd.to_owned()))?;
@@ -419,82 +420,5 @@ fn session(
         PtySession::Default(pty)
     };
 
-    Ok(session)
-}
-
-type LogSession = Session<UnixProcess, LogStream<PtyStream, Stdout>>;
-
-pub enum PtySession {
-    Default(Session),
-    Logged(LogSession),
-}
-
-impl PtySession {
-    pub fn send<B: AsRef<[u8]>>(&mut self, buf: B) -> io::Result<()> {
-        match self {
-            PtySession::Default(s) => s.send(buf),
-            PtySession::Logged(s) => s.send(buf),
-        }
-    }
-
-    pub fn send_line(&mut self, text: &str) -> io::Result<()> {
-        match self {
-            PtySession::Default(s) => s.send_line(text),
-            PtySession::Logged(s) => s.send_line(text),
-        }
-    }
-
-    pub fn expect<N>(
-        &mut self,
-        needle: N,
-    ) -> std::result::Result<Captures, expectrl::Error>
-    where
-        N: Needle,
-    {
-        match self {
-            PtySession::Default(s) => s.expect(needle),
-            PtySession::Logged(s) => s.expect(needle),
-        }
-    }
-}
-
-impl Write for PtySession {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        match self {
-            PtySession::Default(s) => s.write(buf),
-            PtySession::Logged(s) => s.write(buf),
-        }
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        match self {
-            PtySession::Default(s) => s.flush(),
-            PtySession::Logged(s) => s.flush(),
-        }
-    }
-}
-
-impl BufRead for PtySession {
-    fn fill_buf(&mut self) -> io::Result<&[u8]> {
-        match self {
-            PtySession::Default(s) => s.fill_buf(),
-            PtySession::Logged(s) => s.fill_buf(),
-        }
-    }
-
-    fn consume(&mut self, amt: usize) {
-        match self {
-            PtySession::Default(s) => s.consume(amt),
-            PtySession::Logged(s) => s.consume(amt),
-        }
-    }
-}
-
-impl Read for PtySession {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        match self {
-            PtySession::Default(s) => s.read(buf),
-            PtySession::Logged(s) => s.read(buf),
-        }
-    }
+    Ok(ReplSession::new_pty(session, prompt, None, false))
 }

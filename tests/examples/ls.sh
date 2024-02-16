@@ -1,2 +1,2 @@
 ls -la
-#$ wait 500
+#$ sleep 500

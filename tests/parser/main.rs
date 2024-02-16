@@ -86,11 +86,11 @@ fn parse_sendcontrol() -> Result<()> {
 }
 
 #[test]
-fn parse_wait() -> Result<()> {
-    let source = "#$ wait 500";
+fn parse_sleep() -> Result<()> {
+    let source = "#$ sleep 500";
     let instructions = ScriptParser::parse(source)?;
     assert_eq!(1, instructions.len());
-    assert!(matches!(instructions.first(), Some(Instruction::Wait(_))));
+    assert!(matches!(instructions.first(), Some(Instruction::Sleep(_))));
     Ok(())
 }
 
