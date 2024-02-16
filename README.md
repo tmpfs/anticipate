@@ -12,6 +12,20 @@ cargo install anticipate
 
 ## Usage
 
+### Running
+
+To execute scripts use the `run` command:
+
+```
+anticipate \
+  run \
+  --parallel \
+  --logs target \
+  tests/examples/*.sh
+```
+
+### Recording
+
 To record using [asciinema][] writing a `.cast` file for each input file into the `target` directory overwriting any existing files:
 
 ```
@@ -28,6 +42,9 @@ See the progam help for more options.
 
 ## Example
 
+Create a directory, initialize a server config, start the server and then send 
+SIGTERM to shut it down.
+
 ```shell
 mkdir -p target/server/accounts
 #$ readline
@@ -42,9 +59,11 @@ server start target/config.toml
 #$ sendcontrol ^C
 ```
 
+See the `examples` and `fixtures` folders for more examples.
+
 ## Syntax
 
-* [pragma](#pragma) - `#!`
+* [pragma](#pragma) - `#!/bin/bash`
 * [sendline](#send-line) - `#$ sendline ls -la`
 * [sendcontrol](#send-control) - `#$ sendcontrol ^C`
 * [expect](#expect) - `#$ expect Documents`
@@ -70,7 +89,7 @@ asciinema play target/interpolate.cast
 Use a pragma as the first instruction to set the command to execute:
 
 ```
-#!sh
+#!/bin/bash
 ```
 
 If a relative path is given it is resolved relative to the script:

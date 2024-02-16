@@ -70,7 +70,7 @@ pub enum Command {
         echo: bool,
 
         /// Print comments.
-        #[clap(short, long)]
+        #[clap(long)]
         print_comments: bool,
 
         /// Input file paths.
@@ -97,7 +97,7 @@ pub enum Command {
         echo: bool,
 
         /// Print comments.
-        #[clap(short, long)]
+        #[clap(long)]
         print_comments: bool,
 
         /// Overwrite existing recordings.
