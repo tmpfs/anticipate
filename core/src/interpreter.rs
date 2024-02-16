@@ -72,6 +72,8 @@ pub struct InterpreterOptions {
     pub prompt: Option<String>,
     /// Echo to stdout.
     pub echo: bool,
+    /// Print comments.
+    pub print_comments: bool,
 }
 
 impl Default for InterpreterOptions {
@@ -79,28 +81,26 @@ impl Default for InterpreterOptions {
         Self {
             command: "sh -noprofile -norc".to_owned(),
             prompt: None,
-            //command: "PS1='> ' sh".to_owned(),
             timeout: Some(5000),
             cinema: None,
             id: None,
             echo: false,
+            print_comments: false,
         }
     }
 }
 
 impl InterpreterOptions {
     /// Create interpreter options.
-    pub fn new(timeout: u64, echo: bool) -> Self {
+    pub fn new(timeout: u64, echo: bool, print_comments: bool) -> Self {
         Self {
             command: "sh -noprofile -norc".to_owned(),
             prompt: None,
-            //command: "bash".to_owned(),
-            //command: "PS1='> ' sh".to_owned(),
-            //command: "PS1='$ ' sh -noprofile -norc".to_owned(),
             timeout: Some(timeout),
             cinema: None,
             id: None,
             echo,
+            print_comments,
         }
     }
 
@@ -111,6 +111,7 @@ impl InterpreterOptions {
         options: CinemaOptions,
         timeout: u64,
         echo: bool,
+        print_comments: bool,
     ) -> Self {
         let mut command = format!(
             "asciinema rec {:#?}",
@@ -128,6 +129,7 @@ impl InterpreterOptions {
             cinema: Some(options),
             id: None,
             echo,
+            print_comments,
         }
     }
 }
