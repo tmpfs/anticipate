@@ -42,8 +42,7 @@ See the progam help for more options.
 
 ## Example
 
-Create a directory, initialize a server config, start the server and then send 
-SIGTERM to shut it down.
+Create a directory, initialize a server config, print the config file, start the server and then send SIGTERM to shut it down.
 
 ```shell
 mkdir -p target/server/accounts
