@@ -159,6 +159,23 @@ fn parse_include() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn parse_include_many() -> Result<()> {
+    let file = "tests/fixtures/include-many.sh";
+    let file = ScriptFile::parse(file)?;
+    let instructions = file.instructions();
+    let mut it = instructions.iter();
+    assert!(matches!(it.next(), Some(Instruction::Comment(_))));
+    assert!(matches!(it.next(), Some(Instruction::SendLine(_))));
+    assert!(matches!(it.next(), Some(Instruction::Include(_))));
+    assert!(matches!(it.next(), Some(Instruction::Prompt)));
+    assert!(matches!(it.next(), Some(Instruction::Comment(_))));
+    assert!(matches!(it.next(), Some(Instruction::SendLine(_))));
+    assert!(matches!(it.next(), Some(Instruction::Include(_))));
+    assert!(matches!(it.next(), Some(Instruction::Prompt)));
+    Ok(())
+}
+
 // Errors
 
 #[test]

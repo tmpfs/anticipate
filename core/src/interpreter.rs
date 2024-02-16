@@ -18,9 +18,6 @@ use std::{
 use tracing::{span, Level};
 use unicode_segmentation::UnicodeSegmentation;
 
-const ASCIINEMA_WAIT: &str =
-    r#"asciinema: press <ctrl-d> or type "exit" when you're done"#;
-
 const PROMPT: &str = "➜ ";
 
 struct Source<T>(T);
@@ -51,7 +48,7 @@ pub struct CinemaOptions {
 impl Default for CinemaOptions {
     fn default() -> Self {
         Self {
-            delay: 80,
+            delay: 75,
             type_pragma: false,
             deviation: 15.0,
             shell: "sh -noprofile -norc".to_string(),
@@ -205,15 +202,18 @@ impl ScriptFile {
         }
         .try_build()?;
 
+        let mut num_inserts = 0;
         for raw in includes {
             let src = Self::parse_source(&raw.path)?;
             let instruction = Instruction::Include(src);
             source.with_instructions_mut(|i| {
-                if raw.index < i.len() {
-                    i.insert(raw.index, instruction);
+                let index = raw.index + num_inserts;
+                if index < i.len() {
+                    i.insert(index, instruction);
                 } else {
                     i.push(instruction);
                 }
+                num_inserts += 1;
             });
         }
 
@@ -264,10 +264,14 @@ impl ScriptFile {
             session(&exec_cmd, options.timeout, prompt, options.echo)?;
 
         if options.cinema.is_some() {
+            p.expect_prompt()?;
+
+            /*
             p.expect(ASCIINEMA_WAIT)?;
             // Wait for the initial shell prompt to flush
             sleep(Duration::from_millis(50));
             tracing::debug!("asciinema ready");
+            */
         }
 
         fn type_text(
@@ -371,7 +375,7 @@ impl ScriptFile {
                     }
                 }
 
-                sleep(Duration::from_millis(25));
+                //sleep(Duration::from_millis(25));
             }
             Ok(())
         }

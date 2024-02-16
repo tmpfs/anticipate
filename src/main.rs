@@ -97,11 +97,11 @@ pub enum Command {
         overwrite: bool,
 
         /// Delay between keystrokes.
-        #[clap(short, long, default_value = "80")]
+        #[clap(short, long, default_value = "75")]
         delay: u64,
 
         /// Standard deviation for gaussian distribution.
-        #[clap(long, default_value = "5.0")]
+        #[clap(long, default_value = "15.0")]
         deviation: f64,
 
         /// Prompt for the shell.
