@@ -54,6 +54,7 @@ sos-server start target/config.toml
 * [send](#send) - `#$ send echo`
 * [flush](#flush) - `#$ flush`
 * [wait](#wait) - `#$ wait`
+* [clear](#clear) - `#$ clear`
 * [include](#include) - `#$ include ../shared.sh`
 
 The syntax is inspired by [asciinema-automation](https://github.com/PierreMarchand20/asciinema_automation/).
@@ -156,6 +157,14 @@ Wait for the prompt to appear:
 
 ```
 #$ wait
+```
+
+### Clear
+
+Clear the screen and reset the cursor position:
+
+```
+#$ clear
 ```
 
 ### Include

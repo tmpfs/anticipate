@@ -8,6 +8,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+//\033c
+
 fn pragma(lex: &mut Lexer<Token>) -> Option<String> {
     let slice = lex.slice();
     let value = &slice[2..];
@@ -42,6 +44,8 @@ enum Token {
     ReadLine,
     #[regex("#[$]\\s+wait\\s*")]
     Prompt,
+    #[regex("#[$]\\s+clear\\s*")]
+    Clear,
     #[regex("#[$]\\s+send ")]
     Send,
     #[regex("#[$]\\s+flush\\s*")]
@@ -97,6 +101,8 @@ pub enum Instruction<'s> {
     ReadLine,
     /// Wait for the prompt.
     Prompt,
+    /// Clear the screen.
+    Clear,
     /// Send text, the output stream is not flushed.
     Send(&'s str),
     /// Flush the output stream.
@@ -174,6 +180,9 @@ impl ScriptParser {
                 }
                 Token::Prompt => {
                     cmd.push(Instruction::Prompt);
+                }
+                Token::Clear => {
+                    cmd.push(Instruction::Clear);
                 }
                 Token::Pragma(pragma) => {
                     if !cmd.is_empty() {

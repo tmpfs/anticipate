@@ -362,6 +362,9 @@ impl ScriptFile {
                     Instruction::Prompt => {
                         p.expect_prompt()?;
                     }
+                    Instruction::Clear => {
+                        p.send_line("clear")?;
+                    }
                     Instruction::Flush => {
                         p.flush()?;
                     }
@@ -375,7 +378,7 @@ impl ScriptFile {
                     }
                 }
 
-                //sleep(Duration::from_millis(25));
+                sleep(Duration::from_millis(15));
             }
             Ok(())
         }
