@@ -135,16 +135,18 @@ impl ScriptParser {
             tracing::debug!(token = ?token, "parse");
             match token {
                 Token::Command => {
-                    let text = Self::parse_text(&mut lex, source, None)?;
+                    let (text, _) = Self::parse_text(&mut lex, source, None)?;
                     return Err(Error::UnknownInstruction(text.to_owned()));
                 }
                 Token::Comment => {
-                    let text = Self::parse_text(&mut lex, source, None)?;
+                    let (_, finish) = Self::parse_text(&mut lex, source, None)?;
+                    let text = &source[span.start..finish.end];
                     cmd.push(Instruction::Comment(text));
                 }
                 Token::Include => {
-                    let text =
-                        Self::parse_text(&mut lex, source, None)?.trim();
+                    let (text, _) =
+                        Self::parse_text(&mut lex, source, None)?;
+                    let text = text.trim();
                     match resolve_path(base.as_ref(), text) {
                         Ok(path) => {
                             let path: PathBuf = path.as_ref().into();
@@ -180,26 +182,26 @@ impl ScriptParser {
                     cmd.push(Instruction::Pragma(pragma));
                 }
                 Token::Send => {
-                    let text = Self::parse_text(&mut lex, source, None)?;
+                    let (text, _) = Self::parse_text(&mut lex, source, None)?;
                     cmd.push(Instruction::Send(text));
                 }
                 Token::Flush => {
                     cmd.push(Instruction::Flush);
                 }
                 Token::SendLine => {
-                    let text = Self::parse_text(&mut lex, source, None)?;
+                    let (text, _) = Self::parse_text(&mut lex, source, None)?;
                     cmd.push(Instruction::SendLine(text));
                 }
                 Token::Expect => {
-                    let text = Self::parse_text(&mut lex, source, None)?;
+                    let (text, _) = Self::parse_text(&mut lex, source, None)?;
                     cmd.push(Instruction::Expect(text));
                 }
                 Token::Regex => {
-                    let text = Self::parse_text(&mut lex, source, None)?;
+                    let (text, _) = Self::parse_text(&mut lex, source, None)?;
                     cmd.push(Instruction::Regex(text));
                 }
                 Token::SendControl => {
-                    let text = Self::parse_text(&mut lex, source, None)?;
+                    let (text, _) = Self::parse_text(&mut lex, source, None)?;
                     cmd.push(Instruction::SendControl(text));
                 }
                 Token::Sleep(num) => {
@@ -207,7 +209,7 @@ impl ScriptParser {
                 }
                 // Unhandled text is send line
                 Token::Text => {
-                    let text =
+                    let (text, _) =
                         Self::parse_text(&mut lex, source, Some(span))?;
                     if text.starts_with("#$") {
                         return Err(Error::UnknownInstruction(
@@ -228,7 +230,7 @@ impl ScriptParser {
         lex: &mut Lexer<Token>,
         source: &'s str,
         start: Option<Range<usize>>,
-    ) -> Result<&'s str> {
+    ) -> Result<(&'s str, Range<usize>)> {
         let begin = if let Some(start) = start {
             start
         } else {
@@ -247,7 +249,7 @@ impl ScriptParser {
             }
             next_token = lex.next();
         }
-        Ok(&source[begin.start..finish.end])
+        Ok((&source[begin.start..finish.end], finish))
     }
 
     pub(crate) fn interpolate(value: &str) -> Result<Cow<str>> {

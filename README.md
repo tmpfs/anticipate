@@ -53,6 +53,7 @@ sos-server start target/config.toml
 * [sleep](#sleep) - `#$ sleep 500`
 * [send](#send) - `#$ send echo`
 * [flush](#flush) - `#$ flush`
+* [wait](#wait) - `#$ wait`
 * [include](#include) - `#$ include ../shared.sh`
 
 The syntax is inspired by [asciinema-automation](https://github.com/PierreMarchand20/asciinema_automation/).
@@ -147,6 +148,14 @@ Flush the buffer being sent to the pseudo-terminal:
 
 ```
 #$ flush
+```
+
+### Wait
+
+Wait for the prompt to appear:
+
+```
+#$ wait
 ```
 
 ### Include

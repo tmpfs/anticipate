@@ -329,7 +329,8 @@ impl ScriptFile {
                     Instruction::Send(line) => {
                         p.send(line)?;
                     }
-                    Instruction::SendLine(line) => {
+                    Instruction::Comment(line)
+                    | Instruction::SendLine(line) => {
                         let line = ScriptParser::interpolate(line)?;
                         if let Some(cinema) = &options.cinema {
                             type_text(p, line.as_ref(), cinema)?;
@@ -360,7 +361,6 @@ impl ScriptFile {
                     Instruction::Flush => {
                         p.flush()?;
                     }
-                    Instruction::Comment(_) => {}
                     Instruction::Include(source) => {
                         exec(
                             p,

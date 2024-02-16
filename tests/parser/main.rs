@@ -96,13 +96,15 @@ fn parse_sleep() -> Result<()> {
 
 #[test]
 fn parse_comment() -> Result<()> {
-    let source = "# this is a comment that does nothing";
+    let source = "# this is a comment";
     let instructions = ScriptParser::parse(source)?;
-    assert_eq!(1, instructions.len());
-    assert!(matches!(
-        instructions.first(),
-        Some(Instruction::Comment(_))
-    ));
+    if let Some(Instruction::Comment(text)) =
+        instructions.get(0)
+    {
+        assert_eq!(source, *text);
+    } else {
+        panic!("expected comment instruction");
+    }
     Ok(())
 }
 
