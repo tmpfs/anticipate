@@ -98,9 +98,7 @@ fn parse_sleep() -> Result<()> {
 fn parse_comment() -> Result<()> {
     let source = "# this is a comment";
     let instructions = ScriptParser::parse(source)?;
-    if let Some(Instruction::Comment(text)) =
-        instructions.get(0)
-    {
+    if let Some(Instruction::Comment(text)) = instructions.get(0) {
         assert_eq!(source, *text);
     } else {
         panic!("expected comment instruction");

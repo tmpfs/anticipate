@@ -215,8 +215,8 @@ fn start() -> Result<()> {
             if parallel {
                 files.par_iter().for_each(
                     |(input_file, file_name)| match run(
-                        &input_file,
-                        &file_name,
+                        input_file,
+                        file_name,
                         timeout,
                         echo,
                         print_comments,
@@ -227,7 +227,13 @@ fn start() -> Result<()> {
                 );
             } else {
                 for (input_file, file_name) in files {
-                    run(&input_file, &file_name, timeout, echo, print_comments)?;
+                    run(
+                        &input_file,
+                        &file_name,
+                        timeout,
+                        echo,
+                        print_comments,
+                    )?;
                 }
             }
         }
@@ -291,9 +297,9 @@ fn start() -> Result<()> {
             if parallel {
                 files.par_iter().for_each(
                     |(input_file, output_file, file_name)| match record(
-                        &input_file,
-                        &output_file,
-                        &file_name,
+                        input_file,
+                        output_file,
+                        file_name,
                         &cinema,
                         timeout,
                         trim_lines,
@@ -341,6 +347,7 @@ fn run(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn record(
     input_file: &PathBuf,
     output_file: &PathBuf,
@@ -368,7 +375,7 @@ fn record(
     script.run(options)?;
 
     if trim_lines > 0 {
-        trim_exit(&output_file, trim_lines)?;
+        trim_exit(output_file, trim_lines)?;
     }
     Ok(())
 }

@@ -143,13 +143,13 @@ impl ScriptParser {
                     return Err(Error::UnknownInstruction(text.to_owned()));
                 }
                 Token::Comment => {
-                    let (_, finish) = Self::parse_text(&mut lex, source, None)?;
+                    let (_, finish) =
+                        Self::parse_text(&mut lex, source, None)?;
                     let text = &source[span.start..finish.end];
                     cmd.push(Instruction::Comment(text));
                 }
                 Token::Include => {
-                    let (text, _) =
-                        Self::parse_text(&mut lex, source, None)?;
+                    let (text, _) = Self::parse_text(&mut lex, source, None)?;
                     let text = text.trim();
                     match resolve_path(base.as_ref(), text) {
                         Ok(path) => {

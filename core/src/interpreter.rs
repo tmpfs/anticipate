@@ -2,10 +2,9 @@ use crate::{
     resolve_path, Error, Instruction, Instructions, Result, ScriptParser,
 };
 use expectrl::{
-    session::{log, Session, PtySession},
-    ControlCode, Regex,
     repl::ReplSession,
-    StreamSink,
+    session::{log, PtySession, Session},
+    ControlCode, Regex, StreamSink,
 };
 use ouroboros::self_referencing;
 use probability::prelude::*;
