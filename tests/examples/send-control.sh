@@ -1,5 +1,5 @@
 #!../programs/loop.sh
 
 #$ expect Running
-#$ wait 500
-#$ sendcontrol c
+#$ sleep 500
+#$ sendcontrol ^C

@@ -8,12 +8,13 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 logos = "0.14"
 thiserror = "1"
-rexpect = "0.5"
+expectrl = { version = "0.7", path = "../../forks/expectrl" }
 ouroboros = "0.18"
 tracing = "0.1"
 unicode-segmentation = "1"
 probability = "0.20"
 rand = "0.8"
+comma = "1"
 
 [dev-dependencies]
 anyhow = "1"

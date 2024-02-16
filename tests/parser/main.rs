@@ -86,23 +86,25 @@ fn parse_sendcontrol() -> Result<()> {
 }
 
 #[test]
-fn parse_wait() -> Result<()> {
-    let source = "#$ wait 500";
+fn parse_sleep() -> Result<()> {
+    let source = "#$ sleep 500";
     let instructions = ScriptParser::parse(source)?;
     assert_eq!(1, instructions.len());
-    assert!(matches!(instructions.first(), Some(Instruction::Wait(_))));
+    assert!(matches!(instructions.first(), Some(Instruction::Sleep(_))));
     Ok(())
 }
 
 #[test]
 fn parse_comment() -> Result<()> {
-    let source = "# this is a comment that does nothing";
+    let source = "# this is a comment";
     let instructions = ScriptParser::parse(source)?;
-    assert_eq!(1, instructions.len());
-    assert!(matches!(
-        instructions.first(),
-        Some(Instruction::Comment(_))
-    ));
+    if let Some(Instruction::Comment(text)) =
+        instructions.get(0)
+    {
+        assert_eq!(source, *text);
+    } else {
+        panic!("expected comment instruction");
+    }
     Ok(())
 }
 
@@ -121,6 +123,24 @@ fn parse_flush() -> Result<()> {
     let instructions = ScriptParser::parse(source)?;
     assert_eq!(1, instructions.len());
     assert!(matches!(instructions.first(), Some(Instruction::Flush)));
+    Ok(())
+}
+
+#[test]
+fn parse_wait() -> Result<()> {
+    let source = "#$ wait";
+    let instructions = ScriptParser::parse(source)?;
+    assert_eq!(1, instructions.len());
+    assert!(matches!(instructions.first(), Some(Instruction::Wait)));
+    Ok(())
+}
+
+#[test]
+fn parse_clear() -> Result<()> {
+    let source = "#$ clear";
+    let instructions = ScriptParser::parse(source)?;
+    assert_eq!(1, instructions.len());
+    assert!(matches!(instructions.first(), Some(Instruction::Clear)));
     Ok(())
 }
 
@@ -154,6 +174,23 @@ fn parse_include() -> Result<()> {
     } else {
         panic!("expected include instruction");
     }
+    Ok(())
+}
+
+#[test]
+fn parse_include_many() -> Result<()> {
+    let file = "tests/fixtures/include-many.sh";
+    let file = ScriptFile::parse(file)?;
+    let instructions = file.instructions();
+    let mut it = instructions.iter();
+    assert!(matches!(it.next(), Some(Instruction::Comment(_))));
+    assert!(matches!(it.next(), Some(Instruction::SendLine(_))));
+    assert!(matches!(it.next(), Some(Instruction::Include(_))));
+    assert!(matches!(it.next(), Some(Instruction::Wait)));
+    assert!(matches!(it.next(), Some(Instruction::Comment(_))));
+    assert!(matches!(it.next(), Some(Instruction::SendLine(_))));
+    assert!(matches!(it.next(), Some(Instruction::Include(_))));
+    assert!(matches!(it.next(), Some(Instruction::Wait)));
     Ok(())
 }
 

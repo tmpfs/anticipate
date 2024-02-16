@@ -1,0 +1,3 @@
+#$ sendline 
+#$ readline
+exit

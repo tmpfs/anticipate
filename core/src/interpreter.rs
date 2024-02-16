@@ -1,9 +1,15 @@
 use crate::{
     resolve_path, Error, Instruction, Instructions, Result, ScriptParser,
 };
+use expectrl::{
+    session::{log, Session, PtySession},
+    ControlCode, Regex,
+    repl::ReplSession,
+    StreamSink,
+};
 use ouroboros::self_referencing;
 use probability::prelude::*;
-use rexpect::{session::PtySession, spawn};
+use std::io::{BufRead, Write};
 use std::{
     path::{Path, PathBuf},
     thread::sleep,
@@ -12,6 +18,8 @@ use std::{
 use tracing::{span, Level};
 use unicode_segmentation::UnicodeSegmentation;
 
+const PROMPT: &str = "➜ ";
+
 struct Source<T>(T);
 
 impl<T: rand::RngCore> source::Source for Source<T> {
@@ -19,10 +27,6 @@ impl<T: rand::RngCore> source::Source for Source<T> {
         self.0.next_u64()
     }
 }
-
-const ASCIINEMA_WAIT: &str =
-    r#"asciinema: press <ctrl-d> or type "exit" when you're done"#;
-const EXIT: &str = "exit";
 
 /// Options for asciinema execution.
 #[derive(Debug, Clone)]
@@ -33,8 +37,6 @@ pub struct CinemaOptions {
     pub type_pragma: bool,
     /// Deviation for gaussian delay modification.
     pub deviation: f64,
-    /// Prompt for the shell.
-    pub prompt: String,
     /// Shell to run.
     pub shell: String,
     /// Terminal columns.
@@ -46,10 +48,9 @@ pub struct CinemaOptions {
 impl Default for CinemaOptions {
     fn default() -> Self {
         Self {
-            delay: 80,
+            delay: 75,
             type_pragma: false,
-            deviation: 5.0,
-            prompt: "➜ ".to_string(),
+            deviation: 15.0,
             shell: "sh -noprofile -norc".to_string(),
             cols: 80,
             rows: 24,
@@ -67,27 +68,39 @@ pub struct InterpreterOptions {
     pub cinema: Option<CinemaOptions>,
     /// Identifier.
     pub id: Option<String>,
+    /// Prompt.
+    pub prompt: Option<String>,
+    /// Echo to stdout.
+    pub echo: bool,
+    /// Print comments.
+    pub print_comments: bool,
 }
 
 impl Default for InterpreterOptions {
     fn default() -> Self {
         Self {
-            command: "sh".to_owned(),
+            command: "sh -noprofile -norc".to_owned(),
+            prompt: None,
             timeout: Some(5000),
             cinema: None,
             id: None,
+            echo: false,
+            print_comments: false,
         }
     }
 }
 
 impl InterpreterOptions {
     /// Create interpreter options.
-    pub fn new(timeout: u64) -> Self {
+    pub fn new(timeout: u64, echo: bool, print_comments: bool) -> Self {
         Self {
-            command: "sh".to_owned(),
+            command: "sh -noprofile -norc".to_owned(),
+            prompt: None,
             timeout: Some(timeout),
             cinema: None,
             id: None,
+            echo,
+            print_comments,
         }
     }
 
@@ -97,6 +110,8 @@ impl InterpreterOptions {
         overwrite: bool,
         options: CinemaOptions,
         timeout: u64,
+        echo: bool,
+        print_comments: bool,
     ) -> Self {
         let mut command = format!(
             "asciinema rec {:#?}",
@@ -109,9 +124,12 @@ impl InterpreterOptions {
         command.push_str(&format!(" --cols={}", options.cols));
         Self {
             command,
+            prompt: None,
             timeout: Some(timeout),
             cinema: Some(options),
             id: None,
+            echo,
+            print_comments,
         }
     }
 }
@@ -186,15 +204,18 @@ impl ScriptFile {
         }
         .try_build()?;
 
+        let mut num_inserts = 0;
         for raw in includes {
             let src = Self::parse_source(&raw.path)?;
             let instruction = Instruction::Include(src);
             source.with_instructions_mut(|i| {
-                if raw.index < i.len() {
-                    i.insert(raw.index, instruction);
+                let index = raw.index + num_inserts;
+                if index < i.len() {
+                    i.insert(index, instruction);
                 } else {
                     i.push(instruction);
                 }
+                num_inserts += 1;
             });
         }
 
@@ -203,7 +224,7 @@ impl ScriptFile {
 
     /// Execute the command and instructions in a pseudo-terminal
     /// running in a thread.
-    pub fn run(&self, options: &InterpreterOptions) -> Result<()> {
+    pub fn run(&self, options: InterpreterOptions) -> Result<()> {
         let cmd = options.command.clone();
 
         let span = if let Some(id) = &options.id {
@@ -217,9 +238,13 @@ impl ScriptFile {
         let instructions = self.source.borrow_instructions();
         let is_cinema = options.cinema.is_some();
 
+        let prompt =
+            options.prompt.clone().unwrap_or_else(|| PROMPT.to_owned());
+        std::env::set_var("PS1", &prompt);
+
         if let Some(cinema) = &options.cinema {
             // Export a vanilla shell for asciinema
-            let shell = format!("PS1='{}' {}", cinema.prompt, cinema.shell);
+            let shell = format!("PS1='{}' {}", &prompt, cinema.shell);
             std::env::set_var("SHELL", shell);
         }
 
@@ -237,17 +262,22 @@ impl ScriptFile {
         };
 
         tracing::info!(exec = %exec_cmd, "run");
-        let mut p = spawn(&exec_cmd, options.timeout)?;
+        let mut p =
+            session(&exec_cmd, options.timeout, prompt, options.echo)?;
 
         if options.cinema.is_some() {
-            p.exp_string(ASCIINEMA_WAIT)?;
+            p.expect_prompt()?;
+
+            /*
+            p.expect(ASCIINEMA_WAIT)?;
             // Wait for the initial shell prompt to flush
             sleep(Duration::from_millis(50));
             tracing::debug!("asciinema ready");
+            */
         }
 
         fn type_text(
-            pty: &mut PtySession,
+            pty: &mut ReplSession,
             text: &str,
             cinema: &CinemaOptions,
         ) -> Result<()> {
@@ -272,13 +302,15 @@ impl ScriptFile {
 
                 sleep(Duration::from_millis(delay));
             }
+
             pty.send("\n")?;
             pty.flush()?;
+
             Ok(())
         }
 
         fn exec(
-            p: &mut PtySession,
+            p: &mut ReplSession,
             instructions: &[Instruction<'_>],
             options: &InterpreterOptions,
             pragma: Option<&str>,
@@ -297,13 +329,14 @@ impl ScriptFile {
                             }
                         }
                     }
-                    Instruction::Wait(delay) => {
+                    Instruction::Sleep(delay) => {
                         sleep(Duration::from_millis(*delay));
                     }
                     Instruction::Send(line) => {
-                        p.send(line.as_ref())?;
+                        p.send(line)?;
                     }
-                    Instruction::SendLine(line) => {
+                    Instruction::Comment(line)
+                    | Instruction::SendLine(line) => {
                         let line = ScriptParser::interpolate(line)?;
                         if let Some(cinema) = &options.cinema {
                             type_text(p, line.as_ref(), cinema)?;
@@ -312,21 +345,31 @@ impl ScriptFile {
                         }
                     }
                     Instruction::SendControl(ctrl) => {
-                        p.send_control(*ctrl)?;
+                        let ctrl =
+                            ControlCode::try_from(*ctrl).map_err(|_| {
+                                Error::InvalidControlCode(ctrl.to_string())
+                            })?;
+                        p.send(ctrl)?;
                     }
                     Instruction::Expect(line) => {
-                        p.exp_string(line)?;
+                        p.expect(line)?;
                     }
                     Instruction::Regex(line) => {
-                        p.exp_regex(line)?;
+                        p.expect(Regex(line))?;
                     }
                     Instruction::ReadLine => {
-                        p.read_line()?;
+                        let mut line = String::new();
+                        p.read_line(&mut line)?;
+                    }
+                    Instruction::Wait => {
+                        p.expect_prompt()?;
+                    }
+                    Instruction::Clear => {
+                        p.send_line("clear")?;
                     }
                     Instruction::Flush => {
                         p.flush()?;
                     }
-                    Instruction::Comment(_) => {}
                     Instruction::Include(source) => {
                         exec(
                             p,
@@ -336,9 +379,9 @@ impl ScriptFile {
                         )?;
                     }
                 }
-                sleep(Duration::from_millis(25));
-            }
 
+                sleep(Duration::from_millis(15));
+            }
             Ok(())
         }
 
@@ -351,12 +394,40 @@ impl ScriptFile {
 
         if options.cinema.is_some() {
             tracing::debug!("exit");
-            p.send_line(EXIT)?;
+            //p.send_control('d')?;
+
+            p.send(ControlCode::EndOfTransmission)?;
         } else {
             tracing::debug!("eof");
-            p.exp_eof()?;
+            // If it's not a shell, ie: has a pragma command
+            // which is a script this will fail with I/O error
+            // but we can safely ignore it
+            let _ = p.send(ControlCode::EndOfTransmission);
         }
 
         Ok(())
     }
+}
+
+fn session(
+    cmd: &str,
+    _timeout: Option<u64>,
+    prompt: String,
+    echo: bool,
+) -> Result<ReplSession> {
+    use std::process::Command;
+    let mut parts = comma::parse_command(cmd)
+        .ok_or(Error::BadArguments(cmd.to_owned()))?;
+    let prog = parts.remove(0);
+    let mut command = Command::new(prog);
+    command.args(parts);
+
+    let pty = Session::spawn(command)?;
+    let session = if echo {
+        PtySession::Logged(log(pty, std::io::stdout())?)
+    } else {
+        PtySession::Default(pty)
+    };
+
+    Ok(ReplSession::new_pty(session, prompt, None, false))
 }

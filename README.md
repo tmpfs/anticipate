@@ -1,8 +1,8 @@
 # Anticipate
 
-Script based automation using [rexpect](https://docs.rs/rexpect/latest/rexpect/) with support for [asciinema][].
+Script based automation using [expectrl](https://docs.rs/expectrl/) with support for [asciinema][].
 
-Perfect for demos of CLI tools and useful for automating integration testing.
+Perfect for demos and automating integration testing of command line interfaces.
 
 ## Install
 
@@ -24,8 +24,6 @@ anticipate \
   tests/examples/*.sh
 ```
 
-To finish recording we send the `exit` command which will be captured and included in the recording. For demos there is no need to show the exit command so we trim the resulting file to remove it by default. If you want to keep those lines in the recording then set `--trim-lines 0`.
-
 See the progam help for more options.
 
 ## Example
@@ -34,36 +32,36 @@ See the progam help for more options.
 mkdir -p target/server/accounts
 #$ readline
 
-sos-server init target/config.toml --path server/accounts
+server init target/config.toml --path server/accounts
 #$ readline
 
 cat target/config.toml
 #$ expect path = "server/accounts"
 
-sos-server start target/config.toml
-#$ sendcontrol c
+server start target/config.toml
+#$ sendcontrol ^C
 ```
 
 ## Syntax
 
 * [pragma](#pragma) - `#!`
 * [sendline](#send-line) - `#$ sendline ls -la`
-* [sendcontrol](#send-control) - `#$ sendcontrol c`
+* [sendcontrol](#send-control) - `#$ sendcontrol ^C`
 * [expect](#expect) - `#$ expect Documents`
 * [regex](#regex) - `#$ regex [0-9]`
 * [readline](#read-line) - `#$ readline`
-* [wait](#wait) - `#$ wait 500`
+* [sleep](#sleep) - `#$ sleep 500`
 * [send](#send) - `#$ send echo`
 * [flush](#flush) - `#$ flush`
+* [wait](#wait) - `#$ wait`
+* [clear](#clear) - `#$ clear`
 * [include](#include) - `#$ include ../shared.sh`
-
-The syntax is inspired by [asciinema-automation](https://github.com/PierreMarchand20/asciinema_automation/).
 
 Environment variables are interpolated for commands sent to the pseudo terminal which makes it easier to share values across scripts. 
 
 ```
 export NAME=foo
-anticipate rec target tests/examples/interpolate.sh
+anticipate rec -o target tests/examples/interpolate.sh
 asciinema play target/interpolate.cast
 ```
 
@@ -100,7 +98,7 @@ Or you can use the sendline command explicitly:
 To send a control character, for example Ctrl+C:
 
 ```
-#$ sendcontrol c
+#$ sendcontrol ^C
 ```
 
 ### Expect
@@ -127,12 +125,12 @@ Read a line of program output:
 #$ readline
 ```
 
-### Wait
+### Sleep
 
-To wait for a number of milliseconds:
+Wait for a number of milliseconds:
 
 ```
-#$ wait 500
+#$ sleep 500
 ```
 
 ### Send
@@ -151,6 +149,22 @@ Flush the buffer being sent to the pseudo-terminal:
 #$ flush
 ```
 
+### Wait
+
+Wait for the prompt to appear:
+
+```
+#$ wait
+```
+
+### Clear
+
+Clear the screen and reset the cursor position:
+
+```
+#$ clear
+```
+
 ### Include
 
 Include instructions from a script file:
@@ -160,6 +174,15 @@ Include instructions from a script file:
 ```
 
 Paths are resolved relative to the parent directory of the script file.
+
+## See Also
+
+* [Autocast](https://github.com/k9withabone/autocast) if you prefer a YAML syntax
+* [Asciinema Integrations](https://docs.asciinema.org/integrations/) for other asciinema tools 
+
+## Credits
+
+The syntax is inspired by [asciinema-automation](https://github.com/PierreMarchand20/asciinema_automation/).
 
 ## License
 

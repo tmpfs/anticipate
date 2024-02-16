@@ -65,6 +65,14 @@ pub enum Command {
         #[clap(short, long, default_value = "5000")]
         timeout: u64,
 
+        /// Echo input and output.
+        #[clap(short, long)]
+        echo: bool,
+
+        /// Print comments.
+        #[clap(short, long)]
+        print_comments: bool,
+
         /// Input file paths.
         input: Vec<PathBuf>,
     },
@@ -84,16 +92,24 @@ pub enum Command {
         #[clap(short, long, default_value = "5000")]
         timeout: u64,
 
+        /// Echo input and output.
+        #[clap(short, long)]
+        echo: bool,
+
+        /// Print comments.
+        #[clap(short, long)]
+        print_comments: bool,
+
         /// Overwrite existing recordings.
         #[clap(short, long)]
         overwrite: bool,
 
         /// Delay between keystrokes.
-        #[clap(short, long, default_value = "80")]
+        #[clap(short, long, default_value = "75")]
         delay: u64,
 
         /// Standard deviation for gaussian distribution.
-        #[clap(long, default_value = "5.0")]
+        #[clap(long, default_value = "15.0")]
         deviation: f64,
 
         /// Prompt for the shell.
@@ -109,7 +125,7 @@ pub enum Command {
         type_pragma: bool,
 
         /// Number of lines to trim from end of recording.
-        #[clap(long, default_value = "2")]
+        #[clap(long, default_value = "1")]
         trim_lines: u64,
 
         /// Number of terminal columns.
@@ -138,7 +154,9 @@ fn start() -> Result<()> {
             parallel,
         } => {
             if let Some(logs) = logs {
-                init_subscriber(logs, None)?;
+                init_subscriber(Some(logs), None)?;
+            } else {
+                init_subscriber(None, Some("error".to_string()))?;
             }
 
             let mut files = Vec::new();
@@ -174,9 +192,13 @@ fn start() -> Result<()> {
             timeout,
             parallel,
             logs,
+            echo,
+            print_comments,
         } => {
             if let Some(logs) = logs {
-                init_subscriber(logs, None)?;
+                init_subscriber(Some(logs), None)?;
+            } else {
+                init_subscriber(None, Some("error".to_string()))?;
             }
 
             let mut files = Vec::new();
@@ -196,6 +218,8 @@ fn start() -> Result<()> {
                         &input_file,
                         &file_name,
                         timeout,
+                        echo,
+                        print_comments,
                     ) {
                         Ok(_) => {}
                         Err(e) => tracing::error!(error = ?e),
@@ -203,19 +227,9 @@ fn start() -> Result<()> {
                 );
             } else {
                 for (input_file, file_name) in files {
-                    run(&input_file, &file_name, timeout)?;
+                    run(&input_file, &file_name, timeout, echo, print_comments)?;
                 }
             }
-
-            /*
-            let scripts = ScriptFile::parse_files(input)?;
-            for script in scripts {
-                let file_name = script.path().file_name().unwrap();
-                let mut options = InterpreterOptions::new(timeout);
-                options.id = Some(file_name.to_string_lossy().into_owned());
-                script.run(&options)?;
-            }
-            */
         }
         Command::Record {
             parallel,
@@ -232,9 +246,13 @@ fn start() -> Result<()> {
             rows,
             deviation,
             logs,
+            echo,
+            print_comments,
         } => {
             if let Some(logs) = logs {
-                init_subscriber(logs, None)?;
+                init_subscriber(Some(logs), None)?;
+            } else {
+                init_subscriber(None, Some("error".to_string()))?;
             }
 
             let mut files = Vec::new();
@@ -263,7 +281,6 @@ fn start() -> Result<()> {
 
             let cinema = CinemaOptions {
                 delay,
-                prompt: prompt.clone(),
                 shell: shell.clone(),
                 type_pragma,
                 deviation,
@@ -281,6 +298,9 @@ fn start() -> Result<()> {
                         timeout,
                         trim_lines,
                         overwrite,
+                        echo,
+                        &prompt,
+                        print_comments,
                     ) {
                         Ok(_) => {}
                         Err(e) => tracing::error!(error = ?e),
@@ -296,6 +316,9 @@ fn start() -> Result<()> {
                         timeout,
                         trim_lines,
                         overwrite,
+                        echo,
+                        &prompt,
+                        print_comments,
                     )?;
                 }
             }
@@ -304,11 +327,17 @@ fn start() -> Result<()> {
     Ok(())
 }
 
-fn run(input_file: &PathBuf, file_name: &str, timeout: u64) -> Result<()> {
+fn run(
+    input_file: &PathBuf,
+    file_name: &str,
+    timeout: u64,
+    echo: bool,
+    print_comments: bool,
+) -> Result<()> {
     let script = ScriptFile::parse(input_file)?;
-    let mut options = InterpreterOptions::new(timeout);
+    let mut options = InterpreterOptions::new(timeout, echo, print_comments);
     options.id = Some(file_name.to_owned());
-    script.run(&options)?;
+    script.run(options)?;
     Ok(())
 }
 
@@ -320,6 +349,9 @@ fn record(
     timeout: u64,
     trim_lines: u64,
     overwrite: bool,
+    echo: bool,
+    prompt: &str,
+    print_comments: bool,
 ) -> Result<()> {
     let script = ScriptFile::parse(input_file)?;
     let mut options = InterpreterOptions::new_recording(
@@ -327,10 +359,13 @@ fn record(
         overwrite,
         cinema.clone(),
         timeout,
+        echo,
+        print_comments,
     );
 
+    options.prompt = Some(prompt.to_string());
     options.id = Some(file_name.to_owned());
-    script.run(&options)?;
+    script.run(options)?;
 
     if trim_lines > 0 {
         trim_exit(&output_file, trim_lines)?;
@@ -340,12 +375,9 @@ fn record(
 
 #[doc(hidden)]
 fn init_subscriber(
-    logs_dir: PathBuf,
+    logs_dir: Option<PathBuf>,
     default_log_level: Option<String>,
 ) -> Result<()> {
-    let logfile =
-        RollingFileAppender::new(Rotation::DAILY, logs_dir, LOG_FILE_NAME);
-
     let default_log_level = default_log_level.unwrap_or_else(|| {
         "anticipate=debug,anticipate_core=debug".to_owned()
     });
@@ -356,18 +388,31 @@ fn init_subscriber(
         .with_file(false)
         .with_line_number(false)
         .with_target(false);
-    let file_layer = tracing_subscriber::fmt::layer()
-        .with_file(false)
-        .with_line_number(false)
-        .with_ansi(false)
-        .json()
-        .with_writer(logfile);
 
-    tracing_subscriber::registry()
-        .with(env_layer)
-        .with(fmt_layer)
-        .with(file_layer)
-        .try_init()?;
+    if let Some(logs_dir) = logs_dir {
+        let logfile = RollingFileAppender::new(
+            Rotation::DAILY,
+            logs_dir,
+            LOG_FILE_NAME,
+        );
+        let file_layer = tracing_subscriber::fmt::layer()
+            .with_file(false)
+            .with_line_number(false)
+            .with_ansi(false)
+            .json()
+            .with_writer(logfile);
+
+        tracing_subscriber::registry()
+            .with(env_layer)
+            .with(fmt_layer)
+            .with(file_layer)
+            .try_init()?;
+    } else {
+        tracing_subscriber::registry()
+            .with(env_layer)
+            .with(fmt_layer)
+            .try_init()?;
+    }
 
     Ok(())
 }
