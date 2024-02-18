@@ -266,13 +266,9 @@ impl ScriptFile {
 
         if options.cinema.is_some() {
             p.expect_prompt()?;
-
-            /*
-            p.expect(ASCIINEMA_WAIT)?;
             // Wait for the initial shell prompt to flush
             sleep(Duration::from_millis(50));
-            tracing::debug!("asciinema ready");
-            */
+            tracing::debug!("ready");
         }
 
         fn type_text(
