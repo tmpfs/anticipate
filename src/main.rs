@@ -21,10 +21,14 @@ const LOG_FILE_NAME: &str = "anticipate.log";
 #[doc(hidden)]
 fn main() -> Result<()> {
     if let Err(e) = start() {
-        tracing::error!(error = ?e);
-        std::process::exit(1);
+        fail(e);
     }
     Ok(())
+}
+
+fn fail(error: impl std::fmt::Display + std::fmt::Debug) {
+    tracing::error!(error = ?error);
+    std::process::exit(1);
 }
 
 #[doc(hidden)]
@@ -87,6 +91,10 @@ pub enum Command {
         /// Directory to write logs.
         #[clap(short, long)]
         logs: Option<PathBuf>,
+
+        /// Scripts to record beforehand in sequence.
+        #[clap(short, long)]
+        setup: Vec<PathBuf>,
 
         /// Execute scripts in parallel.
         #[clap(short, long)]
@@ -171,7 +179,7 @@ fn start() -> Result<()> {
                         Ok(script) => {
                             println!("{:#?}", script.instructions());
                         }
-                        Err(e) => tracing::error!(error = ?e),
+                        Err(e) => fail(e),
                     }
                 });
             } else {
@@ -221,7 +229,7 @@ fn start() -> Result<()> {
                         print_comments,
                     ) {
                         Ok(_) => {}
-                        Err(e) => tracing::error!(error = ?e),
+                        Err(e) => fail(e),
                     },
                 );
             } else {
@@ -253,35 +261,12 @@ fn start() -> Result<()> {
             logs,
             echo,
             print_comments,
+            setup,
         } => {
             if let Some(logs) = logs {
                 init_subscriber(Some(logs), None)?;
             } else {
                 init_subscriber(None, Some("error".to_string()))?;
-            }
-
-            let mut files = Vec::new();
-            for file in input {
-                if !file.exists() {
-                    bail!("file {} does not exist", file.to_string_lossy(),);
-                }
-
-                let file_name = file.file_name().unwrap();
-                let name = file_name.to_string_lossy().into_owned();
-                let mut output_file = output.join(&name);
-                output_file.set_extension("cast");
-
-                if !file.exists() {
-                    bail!("file {} does not exist", file.to_string_lossy(),);
-                }
-
-                if !overwrite && output_file.exists() {
-                    bail!(
-                        "file {} already exists, use --overwrite to replace",
-                        output_file.to_string_lossy(),
-                    );
-                }
-                files.push((file, output_file, name));
             }
 
             let cinema = CinemaOptions {
@@ -292,6 +277,25 @@ fn start() -> Result<()> {
                 cols,
                 rows,
             };
+
+            let files = check_recording_files(input, &output, overwrite)?;
+            if !setup.is_empty() {
+                let files = check_recording_files(setup, &output, overwrite)?;
+                for (input_file, output_file, file_name) in files {
+                    record(
+                        &input_file,
+                        &output_file,
+                        &file_name,
+                        &cinema,
+                        timeout,
+                        trim_lines,
+                        overwrite,
+                        echo,
+                        &prompt,
+                        print_comments,
+                    )?;
+                }
+            }
 
             if parallel {
                 files.par_iter().for_each(
@@ -308,7 +312,7 @@ fn start() -> Result<()> {
                         print_comments,
                     ) {
                         Ok(_) => {}
-                        Err(e) => tracing::error!(error = ?e),
+                        Err(e) => fail(e),
                     },
                 );
             } else {
@@ -482,6 +486,37 @@ fn check_files(input: Vec<PathBuf>) -> Result<Vec<(PathBuf, String)>> {
         let file_name = file.file_name().unwrap();
         let name = file_name.to_string_lossy().into_owned();
         files.push((file, name));
+    }
+    Ok(files)
+}
+
+fn check_recording_files(
+    input: Vec<PathBuf>,
+    output: &PathBuf,
+    overwrite: bool,
+) -> Result<Vec<(PathBuf, PathBuf, String)>> {
+    let mut files = Vec::new();
+    for file in input {
+        if !file.exists() {
+            bail!("file {} does not exist", file.to_string_lossy(),);
+        }
+
+        let file_name = file.file_name().unwrap();
+        let name = file_name.to_string_lossy().into_owned();
+        let mut output_file = output.join(&name);
+        output_file.set_extension("cast");
+
+        if !file.exists() {
+            bail!("file {} does not exist", file.to_string_lossy(),);
+        }
+
+        if !overwrite && output_file.exists() {
+            bail!(
+                "file {} already exists, use --overwrite to replace",
+                output_file.to_string_lossy(),
+            );
+        }
+        files.push((file, output_file, name));
     }
     Ok(files)
 }
