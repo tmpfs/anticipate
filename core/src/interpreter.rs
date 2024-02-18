@@ -221,8 +221,7 @@ impl ScriptFile {
         Ok(source)
     }
 
-    /// Execute the command and instructions in a pseudo-terminal
-    /// running in a thread.
+    /// Execute the command and instructions in a pseudo-terminal.
     pub fn run(&self, options: InterpreterOptions) -> Result<()> {
         let cmd = options.command.clone();
 
@@ -389,8 +388,6 @@ impl ScriptFile {
 
         if options.cinema.is_some() {
             tracing::debug!("exit");
-            //p.send_control('d')?;
-
             p.send(ControlCode::EndOfTransmission)?;
         } else {
             tracing::debug!("eof");

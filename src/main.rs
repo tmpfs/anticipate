@@ -57,6 +57,10 @@ pub enum Command {
         #[clap(short, long)]
         logs: Option<PathBuf>,
 
+        /// Scripts to run beforehand in sequence.
+        #[clap(short, long)]
+        setup: Vec<PathBuf>,
+
         /// Execute scripts in parallel.
         #[clap(short, long)]
         parallel: bool,
@@ -159,16 +163,7 @@ fn start() -> Result<()> {
                 init_subscriber(None, Some("error".to_string()))?;
             }
 
-            let mut files = Vec::new();
-            for file in input {
-                if !file.exists() {
-                    bail!("file {} does not exist", file.to_string_lossy(),);
-                }
-
-                let file_name = file.file_name().unwrap();
-                let name = file_name.to_string_lossy().into_owned();
-                files.push((file, name));
-            }
+            let files = check_files(input)?;
 
             if parallel {
                 files.par_iter().for_each(|(input_file, _file_name)| {
@@ -194,6 +189,7 @@ fn start() -> Result<()> {
             logs,
             echo,
             print_comments,
+            setup,
         } => {
             if let Some(logs) = logs {
                 init_subscriber(Some(logs), None)?;
@@ -201,15 +197,18 @@ fn start() -> Result<()> {
                 init_subscriber(None, Some("error".to_string()))?;
             }
 
-            let mut files = Vec::new();
-            for file in input {
-                if !file.exists() {
-                    bail!("file {} does not exist", file.to_string_lossy(),);
+            let files = check_files(input)?;
+            if !setup.is_empty() {
+                let files = check_files(setup)?;
+                for (input_file, file_name) in files {
+                    run(
+                        &input_file,
+                        &file_name,
+                        timeout,
+                        echo,
+                        print_comments,
+                    )?;
                 }
-
-                let file_name = file.file_name().unwrap();
-                let name = file_name.to_string_lossy().into_owned();
-                files.push((file, name));
             }
 
             if parallel {
@@ -471,4 +470,18 @@ fn trim_exit(filename: impl AsRef<Path>, trim_lines: u64) -> io::Result<()> {
     }
 
     Ok(())
+}
+
+fn check_files(input: Vec<PathBuf>) -> Result<Vec<(PathBuf, String)>> {
+    let mut files = Vec::new();
+    for file in input {
+        if !file.exists() {
+            bail!("file {} does not exist", file.to_string_lossy());
+        }
+
+        let file_name = file.file_name().unwrap();
+        let name = file_name.to_string_lossy().into_owned();
+        files.push((file, name));
+    }
+    Ok(files)
 }
