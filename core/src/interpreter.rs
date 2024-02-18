@@ -416,7 +416,12 @@ fn session(
 
     let pty = Session::spawn(command)?;
     if echo {
-        Ok(ReplSession::new_log(log(pty, std::io::stdout())?, prompt, None, false))
+        Ok(ReplSession::new_log(
+            log(pty, std::io::stdout())?,
+            prompt,
+            None,
+            false,
+        ))
     } else {
         Ok(ReplSession::new(pty, prompt, None, false))
     }

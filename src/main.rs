@@ -6,11 +6,10 @@ use anticipate_core::{CinemaOptions, InterpreterOptions, ScriptFile};
 use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
 use rayon::prelude::*;
-use std::path::PathBuf;
 use std::{
     fs::{File, OpenOptions},
     io::{self, Read, Seek, SeekFrom},
-    path::Path,
+    path::{Path, PathBuf},
 };
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -492,7 +491,7 @@ fn check_files(input: Vec<PathBuf>) -> Result<Vec<(PathBuf, String)>> {
 
 fn check_recording_files(
     input: Vec<PathBuf>,
-    output: &PathBuf,
+    output: &Path,
     overwrite: bool,
 ) -> Result<Vec<(PathBuf, PathBuf, String)>> {
     let mut files = Vec::new();
