@@ -3,7 +3,7 @@ use crate::{
 };
 use expectrl::{
     repl::ReplSession,
-    session::{log, PtySession, Session},
+    session::{log, Session},
     ControlCode, Regex, StreamSink,
 };
 use ouroboros::self_referencing;
@@ -415,11 +415,9 @@ fn session(
     command.args(parts);
 
     let pty = Session::spawn(command)?;
-    let session = if echo {
-        PtySession::Logged(log(pty, std::io::stdout())?)
+    if echo {
+        Ok(ReplSession::new_log(log(pty, std::io::stdout())?, prompt, None, false))
     } else {
-        PtySession::Default(pty)
-    };
-
-    Ok(ReplSession::new_pty(session, prompt, None, false))
+        Ok(ReplSession::new(pty, prompt, None, false))
+    }
 }
