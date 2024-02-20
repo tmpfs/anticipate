@@ -11,11 +11,7 @@ use std::{
     io::{self, Read, Seek, SeekFrom},
     path::{Path, PathBuf},
 };
-use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
-#[doc(hidden)]
-const LOG_FILE_NAME: &str = "anticipate.log";
 
 #[doc(hidden)]
 fn main() -> Result<()> {
@@ -43,9 +39,9 @@ pub struct Anticipate {
 pub enum Command {
     /// Parse scripts and print the instructions.
     Parse {
-        /// Directory to write logs.
+        /// Enable logging.
         #[clap(short, long)]
-        logs: Option<PathBuf>,
+        log: bool,
 
         /// Parse scripts in parallel.
         #[clap(short, long)]
@@ -56,9 +52,9 @@ pub enum Command {
     },
     /// Run scripts.
     Run {
-        /// Directory to write logs.
+        /// Enable logging.
         #[clap(short, long)]
-        logs: Option<PathBuf>,
+        log: bool,
 
         /// Scripts to run beforehand in sequence.
         #[clap(short, long)]
@@ -87,9 +83,9 @@ pub enum Command {
     /// Record using asciinema.
     #[clap(alias = "rec")]
     Record {
-        /// Directory to write logs.
+        /// Enable logging.
         #[clap(short, long)]
-        logs: Option<PathBuf>,
+        log: bool,
 
         /// Scripts to record beforehand in sequence.
         #[clap(short, long)]
@@ -161,13 +157,11 @@ fn start() -> Result<()> {
     match args.cmd {
         Command::Parse {
             input,
-            logs,
+            log,
             parallel,
         } => {
-            if let Some(logs) = logs {
-                init_subscriber(Some(logs), None)?;
-            } else {
-                init_subscriber(None, Some("error".to_string()))?;
+            if log {
+                init_subscriber()?;
             }
 
             let files = check_files(input)?;
@@ -193,15 +187,13 @@ fn start() -> Result<()> {
             input,
             timeout,
             parallel,
-            logs,
+            log,
             echo,
             print_comments,
             setup,
         } => {
-            if let Some(logs) = logs {
-                init_subscriber(Some(logs), None)?;
-            } else {
-                init_subscriber(None, Some("error".to_string()))?;
+            if log {
+                init_subscriber()?;
             }
 
             let files = check_files(input)?;
@@ -257,15 +249,13 @@ fn start() -> Result<()> {
             cols,
             rows,
             deviation,
-            logs,
+            log,
             echo,
             print_comments,
             setup,
         } => {
-            if let Some(logs) = logs {
-                init_subscriber(Some(logs), None)?;
-            } else {
-                init_subscriber(None, Some("error".to_string()))?;
+            if log {
+                init_subscriber()?;
             }
 
             let cinema = CinemaOptions {
@@ -383,13 +373,8 @@ fn record(
 }
 
 #[doc(hidden)]
-fn init_subscriber(
-    logs_dir: Option<PathBuf>,
-    default_log_level: Option<String>,
-) -> Result<()> {
-    let default_log_level = default_log_level.unwrap_or_else(|| {
-        "anticipate=debug,anticipate_core=debug".to_owned()
-    });
+fn init_subscriber() -> Result<()> {
+    let default_log_level = "anticipate=debug,anticipate_core=debug".to_owned();
     let env_layer = tracing_subscriber::EnvFilter::new(
         std::env::var("RUST_LOG").unwrap_or(default_log_level),
     );
@@ -398,30 +383,10 @@ fn init_subscriber(
         .with_line_number(false)
         .with_target(false);
 
-    if let Some(logs_dir) = logs_dir {
-        let logfile = RollingFileAppender::new(
-            Rotation::DAILY,
-            logs_dir,
-            LOG_FILE_NAME,
-        );
-        let file_layer = tracing_subscriber::fmt::layer()
-            .with_file(false)
-            .with_line_number(false)
-            .with_ansi(false)
-            .json()
-            .with_writer(logfile);
-
-        tracing_subscriber::registry()
-            .with(env_layer)
-            .with(fmt_layer)
-            .with(file_layer)
-            .try_init()?;
-    } else {
-        tracing_subscriber::registry()
-            .with(env_layer)
-            .with(fmt_layer)
-            .try_init()?;
-    }
+    tracing_subscriber::registry()
+        .with(env_layer)
+        .with(fmt_layer)
+        .try_init()?;
 
     Ok(())
 }

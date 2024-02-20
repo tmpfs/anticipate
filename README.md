@@ -20,7 +20,7 @@ To execute scripts use the `run` command:
 anticipate \
   run \
   --parallel \
-  --logs target \
+  --log \
   tests/examples/*.sh
 ```
 
@@ -33,7 +33,7 @@ anticipate \
   record \
   --parallel \
   --overwrite \
-  --logs target \
+  --log \
   target \
   tests/examples/*.sh
 ```
