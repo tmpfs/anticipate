@@ -71,6 +71,8 @@ pub struct InterpreterOptions {
     pub prompt: Option<String>,
     /// Echo to stdout.
     pub echo: bool,
+    /// Format IO logged to stdout.
+    pub format: bool,
     /// Print comments.
     pub print_comments: bool,
 }
@@ -84,6 +86,7 @@ impl Default for InterpreterOptions {
             cinema: None,
             id: None,
             echo: false,
+            format: false,
             print_comments: false,
         }
     }
@@ -91,7 +94,7 @@ impl Default for InterpreterOptions {
 
 impl InterpreterOptions {
     /// Create interpreter options.
-    pub fn new(timeout: u64, echo: bool, print_comments: bool) -> Self {
+    pub fn new(timeout: u64, echo: bool, format: bool, print_comments: bool) -> Self {
         Self {
             command: "sh -noprofile -norc".to_owned(),
             prompt: None,
@@ -99,6 +102,7 @@ impl InterpreterOptions {
             cinema: None,
             id: None,
             echo,
+            format,
             print_comments,
         }
     }
@@ -110,6 +114,7 @@ impl InterpreterOptions {
         options: CinemaOptions,
         timeout: u64,
         echo: bool,
+        format: bool,
         print_comments: bool,
     ) -> Self {
         let mut command = format!(
@@ -128,6 +133,7 @@ impl InterpreterOptions {
             cinema: Some(options),
             id: None,
             echo,
+            format,
             print_comments,
         }
     }
@@ -261,7 +267,7 @@ impl ScriptFile {
 
         tracing::info!(exec = %exec_cmd, "run");
         let mut p =
-            session(&exec_cmd, options.timeout, prompt, options.echo)?;
+            session(&exec_cmd, options.timeout, prompt, options.echo, options.format)?;
 
         if options.cinema.is_some() {
             p.expect_prompt()?;
@@ -406,6 +412,7 @@ fn session(
     _timeout: Option<u64>,
     prompt: String,
     echo: bool,
+    format: bool,
 ) -> Result<ReplSession> {
     use std::process::Command;
     let mut parts = comma::parse_command(cmd)
@@ -414,18 +421,15 @@ fn session(
     let mut command = Command::new(prog);
     command.args(parts);
     
-    // TODO: get this from the options
-    let passthrough = true;
-
     let pty = Session::spawn(command)?;
-    if echo && !passthrough {
+    if echo && format {
         Ok(ReplSession::new_log(
             log(pty, std::io::stdout())?,
             prompt,
             None,
             false,
         ))
-    } else if echo && passthrough {
+    } else if echo && !format {
         Ok(ReplSession::new_tee(
             tee(pty, std::io::stdout())?,
             prompt,

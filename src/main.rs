@@ -110,6 +110,15 @@ pub enum Command {
         )]
         echo: bool,
 
+        /// Format input and output logs (requires --echo).
+        #[clap(
+            short,
+            long,
+            env = "ANTICIPATE_FORMAT",
+            hide_env_values = true,
+        )]
+        format: bool,
+
         /// Print comments.
         #[clap(long)]
         print_comments: bool,
@@ -150,6 +159,15 @@ pub enum Command {
             hide_env_values = true,
         )]
         echo: bool,
+
+        /// Format input and output logs (requires --echo).
+        #[clap(
+            short,
+            long,
+            env = "ANTICIPATE_FORMAT",
+            hide_env_values = true,
+        )]
+        format: bool,
 
         /// Print comments.
         #[clap(long)]
@@ -232,6 +250,7 @@ fn start() -> Result<()> {
             parallel,
             log,
             echo,
+            format,
             print_comments,
             setup,
         } => {
@@ -248,6 +267,7 @@ fn start() -> Result<()> {
                         &file_name,
                         timeout,
                         echo,
+                        format,
                         print_comments,
                     )?;
                 }
@@ -260,6 +280,7 @@ fn start() -> Result<()> {
                         file_name,
                         timeout,
                         echo,
+                        format,
                         print_comments,
                     ) {
                         Ok(_) => {}
@@ -273,6 +294,7 @@ fn start() -> Result<()> {
                         &file_name,
                         timeout,
                         echo,
+                        format,
                         print_comments,
                     )?;
                 }
@@ -294,6 +316,7 @@ fn start() -> Result<()> {
             deviation,
             log,
             echo,
+            format,
             print_comments,
             setup,
         } => {
@@ -323,6 +346,7 @@ fn start() -> Result<()> {
                         trim_lines,
                         overwrite,
                         echo,
+                        format,
                         &prompt,
                         print_comments,
                     )?;
@@ -340,6 +364,7 @@ fn start() -> Result<()> {
                         trim_lines,
                         overwrite,
                         echo,
+                        format,
                         &prompt,
                         print_comments,
                     ) {
@@ -358,6 +383,7 @@ fn start() -> Result<()> {
                         trim_lines,
                         overwrite,
                         echo,
+                        format,
                         &prompt,
                         print_comments,
                     )?;
@@ -390,11 +416,12 @@ fn run(
     file_name: &str,
     timeout: u64,
     echo: bool,
+    format: bool,
     print_comments: bool,
 ) -> Result<()> {
     info(format!("Run {}", file_name));
     let script = ScriptFile::parse(input_file)?;
-    let mut options = InterpreterOptions::new(timeout, echo, print_comments);
+    let mut options = InterpreterOptions::new(timeout, echo, format, print_comments);
     options.id = Some(file_name.to_owned());
     script.run(options)?;
     success(format!(" Ok {}", file_name));
@@ -411,6 +438,7 @@ fn record(
     trim_lines: u64,
     overwrite: bool,
     echo: bool,
+    format: bool,
     prompt: &str,
     print_comments: bool,
 ) -> Result<()> {
@@ -422,6 +450,7 @@ fn record(
         cinema.clone(),
         timeout,
         echo,
+        format,
         print_comments,
     );
 
