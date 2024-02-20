@@ -3,8 +3,8 @@ use crate::{
 };
 use expectrl::{
     repl::ReplSession,
-    session::{log, Session},
-    ControlCode, Regex, StreamSink,
+    session::{log, tee, Session},
+    ControlCode, Regex, Expect,
 };
 use ouroboros::self_referencing;
 use probability::prelude::*;
@@ -413,11 +413,21 @@ fn session(
     let prog = parts.remove(0);
     let mut command = Command::new(prog);
     command.args(parts);
+    
+    // TODO: get this from the options
+    let passthrough = true;
 
     let pty = Session::spawn(command)?;
-    if echo {
+    if echo && !passthrough {
         Ok(ReplSession::new_log(
             log(pty, std::io::stdout())?,
+            prompt,
+            None,
+            false,
+        ))
+    } else if echo && passthrough {
+        Ok(ReplSession::new_tee(
+            tee(pty, std::io::stdout())?,
             prompt,
             None,
             false,
