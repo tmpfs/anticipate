@@ -4,7 +4,7 @@ use crate::{
 use expectrl::{
     repl::ReplSession,
     session::{log, tee, Session},
-    ControlCode, Regex, Expect,
+    ControlCode, Expect, Regex,
 };
 use ouroboros::self_referencing;
 use probability::prelude::*;
@@ -94,7 +94,12 @@ impl Default for InterpreterOptions {
 
 impl InterpreterOptions {
     /// Create interpreter options.
-    pub fn new(timeout: u64, echo: bool, format: bool, print_comments: bool) -> Self {
+    pub fn new(
+        timeout: u64,
+        echo: bool,
+        format: bool,
+        print_comments: bool,
+    ) -> Self {
         Self {
             command: "sh -noprofile -norc".to_owned(),
             prompt: None,
@@ -266,8 +271,13 @@ impl ScriptFile {
         };
 
         tracing::info!(exec = %exec_cmd, "run");
-        let mut p =
-            session(&exec_cmd, options.timeout, prompt, options.echo, options.format)?;
+        let mut p = session(
+            &exec_cmd,
+            options.timeout,
+            prompt,
+            options.echo,
+            options.format,
+        )?;
 
         if options.cinema.is_some() {
             p.expect_prompt()?;
@@ -420,7 +430,7 @@ fn session(
     let prog = parts.remove(0);
     let mut command = Command::new(prog);
     command.args(parts);
-    
+
     let pty = Session::spawn(command)?;
     if echo && format {
         Ok(ReplSession::new_log(
