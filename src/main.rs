@@ -5,6 +5,7 @@
 use anticipate_core::{CinemaOptions, InterpreterOptions, ScriptFile};
 use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
+use colored::Colorize;
 use rayon::prelude::*;
 use std::{
     fs::{File, OpenOptions},
@@ -12,7 +13,6 @@ use std::{
     path::{Path, PathBuf},
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use colored::Colorize;
 
 const TICK: &str = "✓";
 const ERROR: &str = "Err";
@@ -63,12 +63,7 @@ pub enum Command {
     /// Parse scripts and print the instructions.
     Parse {
         /// Enable logging.
-        #[clap(
-            short,
-            long,
-            env = "ANTICIPATE_LOG",
-            hide_env_values = true,
-        )]
+        #[clap(short, long, env = "ANTICIPATE_LOG", hide_env_values = true)]
         log: bool,
 
         /// Parse scripts in parallel.
@@ -81,17 +76,16 @@ pub enum Command {
     /// Run scripts.
     Run {
         /// Enable logging.
-        #[clap(
-            short,
-            long,
-            env = "ANTICIPATE_LOG",
-            hide_env_values = true,
-        )]
+        #[clap(short, long, env = "ANTICIPATE_LOG", hide_env_values = true)]
         log: bool,
 
         /// Scripts to run beforehand in sequence.
         #[clap(short, long)]
         setup: Vec<PathBuf>,
+
+        /// Scripts to run afterwards in sequence.
+        #[clap(short, long)]
+        teardown: Vec<PathBuf>,
 
         /// Execute scripts in parallel.
         #[clap(short, long)]
@@ -102,12 +96,7 @@ pub enum Command {
         timeout: u64,
 
         /// Echo input and output.
-        #[clap(
-            short,
-            long,
-            env = "ANTICIPATE_ECHO",
-            hide_env_values = true,
-        )]
+        #[clap(short, long, env = "ANTICIPATE_ECHO", hide_env_values = true)]
         echo: bool,
 
         /// Format input and output logs (requires --echo).
@@ -115,7 +104,7 @@ pub enum Command {
             short,
             long,
             env = "ANTICIPATE_FORMAT",
-            hide_env_values = true,
+            hide_env_values = true
         )]
         format: bool,
 
@@ -131,17 +120,16 @@ pub enum Command {
     #[clap(alias = "rec")]
     Record {
         /// Enable logging.
-        #[clap(
-            short,
-            long,
-            env = "ANTICIPATE_LOG",
-            hide_env_values = true,
-        )]
+        #[clap(short, long, env = "ANTICIPATE_LOG", hide_env_values = true)]
         log: bool,
 
         /// Scripts to record beforehand in sequence.
         #[clap(short, long)]
         setup: Vec<PathBuf>,
+
+        /// Scripts to record afterwards in sequence.
+        #[clap(short, long)]
+        teardown: Vec<PathBuf>,
 
         /// Execute scripts in parallel.
         #[clap(short, long)]
@@ -152,12 +140,7 @@ pub enum Command {
         timeout: u64,
 
         /// Echo input and output.
-        #[clap(
-            short,
-            long,
-            env = "ANTICIPATE_ECHO",
-            hide_env_values = true,
-        )]
+        #[clap(short, long, env = "ANTICIPATE_ECHO", hide_env_values = true)]
         echo: bool,
 
         /// Format input and output logs (requires --echo).
@@ -165,7 +148,7 @@ pub enum Command {
             short,
             long,
             env = "ANTICIPATE_FORMAT",
-            hide_env_values = true,
+            hide_env_values = true
         )]
         format: bool,
 
@@ -253,6 +236,7 @@ fn start() -> Result<()> {
             format,
             print_comments,
             setup,
+            teardown,
         } => {
             if log {
                 init_subscriber()?;
@@ -299,6 +283,20 @@ fn start() -> Result<()> {
                     )?;
                 }
             }
+
+            if !teardown.is_empty() {
+                let files = check_files(teardown)?;
+                for (input_file, file_name) in files {
+                    run(
+                        &input_file,
+                        &file_name,
+                        timeout,
+                        echo,
+                        format,
+                        print_comments,
+                    )?;
+                }
+            }
         }
         Command::Record {
             parallel,
@@ -319,6 +317,7 @@ fn start() -> Result<()> {
             format,
             print_comments,
             setup,
+            teardown,
         } => {
             if log {
                 init_subscriber()?;
@@ -389,15 +388,32 @@ fn start() -> Result<()> {
                     )?;
                 }
             }
+
+            if !teardown.is_empty() {
+                let files =
+                    check_recording_files(teardown, &output, overwrite)?;
+                for (input_file, output_file, file_name) in files {
+                    record(
+                        &input_file,
+                        &output_file,
+                        &file_name,
+                        &cinema,
+                        timeout,
+                        trim_lines,
+                        overwrite,
+                        echo,
+                        format,
+                        &prompt,
+                        print_comments,
+                    )?;
+                }
+            }
         }
     }
     Ok(())
 }
 
-fn parse(
-    input_file: &PathBuf,
-    file_name: &str,
-) -> Result<()> {
+fn parse(input_file: &PathBuf, file_name: &str) -> Result<()> {
     tracing::debug!(path = ?input_file, "parse");
 
     info(format!("Parse {}", file_name));
@@ -421,7 +437,8 @@ fn run(
 ) -> Result<()> {
     info(format!("Run {}", file_name));
     let script = ScriptFile::parse(input_file)?;
-    let mut options = InterpreterOptions::new(timeout, echo, format, print_comments);
+    let mut options =
+        InterpreterOptions::new(timeout, echo, format, print_comments);
     options.id = Some(file_name.to_owned());
     script.run(options)?;
     success(format!(" Ok {}", file_name));
@@ -467,7 +484,8 @@ fn record(
 
 #[doc(hidden)]
 fn init_subscriber() -> Result<()> {
-    let default_log_level = "anticipate=debug,anticipate_core=debug".to_owned();
+    let default_log_level =
+        "anticipate=debug,anticipate_core=debug".to_owned();
     let env_layer = tracing_subscriber::EnvFilter::new(
         std::env::var("RUST_LOG").unwrap_or(default_log_level),
     );
