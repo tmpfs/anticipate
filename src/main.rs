@@ -12,6 +12,10 @@ use std::{
     path::{Path, PathBuf},
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use colored::Colorize;
+
+const TICK: &str = "✓";
+const ERROR: &str = "Err";
 
 #[doc(hidden)]
 fn main() -> Result<()> {
@@ -21,9 +25,28 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn fail(error: impl std::fmt::Display + std::fmt::Debug) {
-    tracing::error!(error = ?error);
+fn fail(e: impl std::fmt::Display + std::fmt::Debug) {
+    tracing::error!(error = ?e);
+    error(e.to_string());
     std::process::exit(1);
+}
+
+/// Print a success message.
+pub fn success(msg: impl AsRef<str>) {
+    let out = format!("{} {}", msg.as_ref().green(), TICK.green());
+    println!("{}", out);
+}
+
+/// Print a info message.
+pub fn info(msg: impl AsRef<str>) {
+    let out = format!("{}", msg.as_ref().yellow());
+    println!("{}", out);
+}
+
+/// Print an error message for failure.
+pub fn error(msg: impl AsRef<str>) {
+    let out = format!("{} {}", ERROR.red(), msg.as_ref());
+    println!("{}", out);
 }
 
 #[doc(hidden)]
@@ -40,7 +63,12 @@ pub enum Command {
     /// Parse scripts and print the instructions.
     Parse {
         /// Enable logging.
-        #[clap(short, long)]
+        #[clap(
+            short,
+            long,
+            env = "ANTICIPATE_LOG",
+            hide_env_values = true,
+        )]
         log: bool,
 
         /// Parse scripts in parallel.
@@ -53,7 +81,12 @@ pub enum Command {
     /// Run scripts.
     Run {
         /// Enable logging.
-        #[clap(short, long)]
+        #[clap(
+            short,
+            long,
+            env = "ANTICIPATE_LOG",
+            hide_env_values = true,
+        )]
         log: bool,
 
         /// Scripts to run beforehand in sequence.
@@ -69,7 +102,12 @@ pub enum Command {
         timeout: u64,
 
         /// Echo input and output.
-        #[clap(short, long)]
+        #[clap(
+            short,
+            long,
+            env = "ANTICIPATE_ECHO",
+            hide_env_values = true,
+        )]
         echo: bool,
 
         /// Print comments.
@@ -84,7 +122,12 @@ pub enum Command {
     #[clap(alias = "rec")]
     Record {
         /// Enable logging.
-        #[clap(short, long)]
+        #[clap(
+            short,
+            long,
+            env = "ANTICIPATE_LOG",
+            hide_env_values = true,
+        )]
         log: bool,
 
         /// Scripts to record beforehand in sequence.
@@ -100,7 +143,12 @@ pub enum Command {
         timeout: u64,
 
         /// Echo input and output.
-        #[clap(short, long)]
+        #[clap(
+            short,
+            long,
+            env = "ANTICIPATE_ECHO",
+            hide_env_values = true,
+        )]
         echo: bool,
 
         /// Print comments.
@@ -167,19 +215,14 @@ fn start() -> Result<()> {
             let files = check_files(input)?;
 
             if parallel {
-                files.par_iter().for_each(|(input_file, _file_name)| {
-                    match ScriptFile::parse(input_file) {
-                        Ok(script) => {
-                            println!("{:#?}", script.instructions());
-                        }
-                        Err(e) => fail(e),
+                files.par_iter().for_each(|(input_file, file_name)| {
+                    if let Err(e) = parse(input_file, file_name) {
+                        fail(e);
                     }
                 });
             } else {
-                for (input_file, _file_name) in files {
-                    tracing::info!(path = ?input_file, "parse");
-                    let script = ScriptFile::parse(input_file)?;
-                    println!("{:#?}", script.instructions());
+                for (input_file, file_name) in files {
+                    parse(&input_file, &file_name)?;
                 }
             }
         }
@@ -325,6 +368,23 @@ fn start() -> Result<()> {
     Ok(())
 }
 
+fn parse(
+    input_file: &PathBuf,
+    file_name: &str,
+) -> Result<()> {
+    tracing::debug!(path = ?input_file, "parse");
+
+    info(format!("Parse {}", file_name));
+    match ScriptFile::parse(input_file) {
+        Ok(script) => {
+            println!("{:#?}", script.instructions());
+        }
+        Err(e) => fail(e),
+    }
+    success(format!("   Ok {}", file_name));
+    Ok(())
+}
+
 fn run(
     input_file: &PathBuf,
     file_name: &str,
@@ -332,10 +392,12 @@ fn run(
     echo: bool,
     print_comments: bool,
 ) -> Result<()> {
+    info(format!("Run {}", file_name));
     let script = ScriptFile::parse(input_file)?;
     let mut options = InterpreterOptions::new(timeout, echo, print_comments);
     options.id = Some(file_name.to_owned());
     script.run(options)?;
+    success(format!(" Ok {}", file_name));
     Ok(())
 }
 
@@ -352,6 +414,7 @@ fn record(
     prompt: &str,
     print_comments: bool,
 ) -> Result<()> {
+    info(format!("Rec {}", file_name));
     let script = ScriptFile::parse(input_file)?;
     let mut options = InterpreterOptions::new_recording(
         output_file.clone(),
@@ -369,6 +432,7 @@ fn record(
     if trim_lines > 0 {
         trim_exit(output_file, trim_lines)?;
     }
+    success(format!(" Ok {}", file_name));
     Ok(())
 }
 
