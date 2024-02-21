@@ -52,10 +52,10 @@ enum Token {
     Include,
     #[regex("#[$].?", priority = 4)]
     Command,
-    #[regex("(\t| )*#[^$!]?.", priority = 3)]
-    Comment,
-    #[regex("\r?\n", priority = 2)]
+    #[regex("\r?\n", priority = 3)]
     Newline,
+    #[regex("(\t| )*#[^$!]?#*.", priority = 2)]
+    Comment,
     #[regex("(.|[\t ]+)", priority = 0)]
     Text,
 }

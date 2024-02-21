@@ -221,16 +221,48 @@ fn parse_escaped_multiline() -> Result<()> {
 -n "$FILE_NAME" \
 "$FILE_INPUT""#;
     let instructions = ScriptParser::parse(source)?;
-
-    println!("{:#?}", instructions);
-
-    /*
-    assert_eq!(1, instructions.len());
+    assert_eq!(3, instructions.len());
     assert!(matches!(
-        instructions.first(),
+        instructions.get(0),
         Some(Instruction::SendLine(_))
     ));
-    */
+    assert!(matches!(
+        instructions.get(1),
+        Some(Instruction::SendLine(_))
+    ));
+    assert!(matches!(
+        instructions.get(2),
+        Some(Instruction::SendLine(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn parse_comment_heading() -> Result<()> {
+    let source = include_str!("../../tests/fixtures/heading.sh");
+    let instructions = ScriptParser::parse(source)?;
+
+    assert_eq!(5, instructions.len());
+    assert!(matches!(
+        instructions.get(0),
+        Some(Instruction::SendLine(_))
+    ));
+    assert!(matches!(
+        instructions.get(1),
+        Some(Instruction::Wait)
+    ));
+    assert!(matches!(
+        instructions.get(2),
+        Some(Instruction::Comment(_))
+    ));
+    assert!(matches!(
+        instructions.get(3),
+        Some(Instruction::Comment(_))
+    ));
+    assert!(matches!(
+        instructions.get(4),
+        Some(Instruction::Comment(_))
+    ));
     Ok(())
 }
 
