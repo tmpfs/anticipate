@@ -192,6 +192,29 @@ fn parse_include_many() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn parse_comment_leading_whitespace() -> Result<()> {
+    let source = r#"    # comment with leading whitespace"#;
+    let instructions = ScriptParser::parse(source)?;
+    assert!(matches!(
+        instructions.first(),
+        Some(Instruction::Comment(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn parse_multi_whitespace() -> Result<()> {
+    let source = r#"exe cmd      -n "$FILE_NAME"  "$FILE_INPUT""#;
+    let instructions = ScriptParser::parse(source)?;
+    assert_eq!(1, instructions.len());
+    assert!(matches!(
+        instructions.first(),
+        Some(Instruction::SendLine(_))
+    ));
+    Ok(())
+}
+
 // Errors
 
 #[test]
@@ -200,6 +223,9 @@ fn parse_pragma_first_err() -> Result<()> {
 # comment before the pragma
 #!sh"#;
     let result = ScriptParser::parse(source);
+
+    println!("{:#?}", result);
+
     assert!(matches!(result, Err(Error::PragmaFirst)));
     Ok(())
 }
@@ -225,7 +251,7 @@ fn parse_unknown_empty() -> Result<()> {
     assert!(matches!(result, Err(Error::UnknownInstruction(_))));
 
     if let Err(Error::UnknownInstruction(cmd)) = result {
-        assert_eq!("#$", cmd);
+        assert_eq!("", cmd);
     } else {
         panic!("expected unknown instruction error");
     }

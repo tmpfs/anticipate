@@ -50,13 +50,13 @@ enum Token {
     Flush,
     #[regex("#[$]\\s+include\\s+")]
     Include,
-    #[regex("#[$].", priority = 2)]
+    #[regex("#[$].?", priority = 2)]
     Command,
-    #[regex("#[^$].", priority = 1)]
+    #[regex("(\t| )*#[^$!]?.", priority = 1)]
     Comment,
     #[regex("\r?\n")]
     Newline,
-    #[regex(".", priority = 0)]
+    #[regex("(.|[\t ]+)", priority = 0)]
     Text,
 }
 
@@ -134,7 +134,6 @@ impl ScriptParser {
         let mut includes = Vec::new();
         while let Some(token) = next_token.take() {
             let token = token?;
-
             let span = lex.span();
             tracing::debug!(token = ?token, "parse");
             match token {
