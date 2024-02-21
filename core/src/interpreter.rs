@@ -347,6 +347,12 @@ impl ScriptFile {
                     }
                     Instruction::Comment(line)
                     | Instruction::SendLine(line) => {
+                        if let (false, Instruction::Comment(_)) =
+                            (options.print_comments, cmd)
+                        {
+                            continue;
+                        }
+
                         let line = ScriptParser::interpolate(line)?;
                         if let Some(cinema) = &options.cinema {
                             type_text(p, line.as_ref(), cinema)?;
