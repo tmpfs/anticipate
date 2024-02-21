@@ -203,6 +203,18 @@ fn parse_comment_leading_whitespace() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn parse_multi_whitespace() -> Result<()> {
+    let source = r#"exe cmd      -n "$FILE_NAME"  "$FILE_INPUT""#;
+    let instructions = ScriptParser::parse(source)?;
+    assert_eq!(1, instructions.len());
+    assert!(matches!(
+        instructions.first(),
+        Some(Instruction::SendLine(_))
+    ));
+    Ok(())
+}
+
 // Errors
 
 #[test]

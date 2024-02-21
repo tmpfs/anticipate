@@ -56,7 +56,7 @@ enum Token {
     Comment,
     #[regex("\r?\n")]
     Newline,
-    #[regex(".", priority = 0)]
+    #[regex("(.|[\t ]+)", priority = 0)]
     Text,
 }
 
