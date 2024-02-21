@@ -52,7 +52,7 @@ enum Token {
     Include,
     #[regex("#[$].?", priority = 2)]
     Command,
-    #[regex("#[^$!]?.", priority = 1)]
+    #[regex("(\t| )*#[^$!]?.", priority = 1)]
     Comment,
     #[regex("\r?\n")]
     Newline,
@@ -134,9 +134,6 @@ impl ScriptParser {
         let mut includes = Vec::new();
         while let Some(token) = next_token.take() {
             let token = token?;
-
-            println!("{:#?}", token);
-
             let span = lex.span();
             tracing::debug!(token = ?token, "parse");
             match token {
@@ -250,7 +247,6 @@ impl ScriptParser {
         let mut next_token = lex.next();
         while let Some(token) = next_token.take() {
             let token = token?;
-            println!("parse_text: {:#?}", token);
             match token {
                 Token::Text => {
                     finish = lex.span();

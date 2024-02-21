@@ -195,11 +195,11 @@ fn parse_include_many() -> Result<()> {
 #[test]
 fn parse_comment_leading_whitespace() -> Result<()> {
     let source = r#"    # comment with leading whitespace"#;
-    let result = ScriptParser::parse(source);
-    
-    println!("{:#?}", result);
-
-    //assert!(matches!(result, Err(Error::PragmaFirst)));
+    let instructions = ScriptParser::parse(source)?;
+    assert!(matches!(
+        instructions.first(),
+        Some(Instruction::Comment(_))
+    ));
     Ok(())
 }
 
@@ -211,7 +211,7 @@ fn parse_pragma_first_err() -> Result<()> {
 # comment before the pragma
 #!sh"#;
     let result = ScriptParser::parse(source);
-    
+
     println!("{:#?}", result);
 
     assert!(matches!(result, Err(Error::PragmaFirst)));
