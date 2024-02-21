@@ -247,22 +247,10 @@ fn parse_comment_heading() -> Result<()> {
         instructions.get(0),
         Some(Instruction::SendLine(_))
     ));
-    assert!(matches!(
-        instructions.get(1),
-        Some(Instruction::Wait)
-    ));
-    assert!(matches!(
-        instructions.get(2),
-        Some(Instruction::Comment(_))
-    ));
-    assert!(matches!(
-        instructions.get(3),
-        Some(Instruction::Comment(_))
-    ));
-    assert!(matches!(
-        instructions.get(4),
-        Some(Instruction::Comment(_))
-    ));
+    assert!(matches!(instructions.get(1), Some(Instruction::Wait)));
+    assert!(matches!(instructions.get(2), Some(Instruction::Comment(_))));
+    assert!(matches!(instructions.get(3), Some(Instruction::Comment(_))));
+    assert!(matches!(instructions.get(4), Some(Instruction::Comment(_))));
     Ok(())
 }
 
