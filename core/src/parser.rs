@@ -50,11 +50,11 @@ enum Token {
     Flush,
     #[regex("#[$]\\s+include\\s+")]
     Include,
-    #[regex("#[$].?", priority = 2)]
+    #[regex("#[$].?", priority = 4)]
     Command,
-    #[regex("(\t| )*#[^$!]?.", priority = 1)]
+    #[regex("(\t| )*#[^$!]?.", priority = 3)]
     Comment,
-    #[regex("\r?\n")]
+    #[regex("\r?\n", priority = 2)]
     Newline,
     #[regex("(.|[\t ]+)", priority = 0)]
     Text,

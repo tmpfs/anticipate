@@ -215,6 +215,25 @@ fn parse_multi_whitespace() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn parse_escaped_multiline() -> Result<()> {
+    let source = r#"exe cmd \
+-n "$FILE_NAME" \
+"$FILE_INPUT""#;
+    let instructions = ScriptParser::parse(source)?;
+
+    println!("{:#?}", instructions);
+
+    /*
+    assert_eq!(1, instructions.len());
+    assert!(matches!(
+        instructions.first(),
+        Some(Instruction::SendLine(_))
+    ));
+    */
+    Ok(())
+}
+
 // Errors
 
 #[test]

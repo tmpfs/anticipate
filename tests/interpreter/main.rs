@@ -9,6 +9,13 @@ fn interpret_echo() -> Result<()> {
 }
 
 #[test]
+fn interpret_escaped_newline() -> Result<()> {
+    let file = ScriptFile::parse("tests/fixtures/escaped-newline.sh")?;
+    file.run(Default::default())?;
+    Ok(())
+}
+
+#[test]
 fn interpret_teletype() -> Result<()> {
     let file = ScriptFile::parse("tests/fixtures/teletype.sh")?;
     file.run(Default::default())?;
