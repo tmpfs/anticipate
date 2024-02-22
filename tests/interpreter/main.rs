@@ -1,4 +1,4 @@
-use anticipate_core::{InterpreterOptions, ScriptFile};
+use anticipate_runner::{InterpreterOptions, ScriptFile};
 use anyhow::Result;
 
 #[test]

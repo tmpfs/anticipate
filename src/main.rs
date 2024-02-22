@@ -2,7 +2,7 @@
 //! using [asciinema](https://asciinema.org/).
 //!
 //! For programmatic access use the [anticipate-core](https://docs.rs/anticipate-core) crate, see [the repository](https://github.com/tmpfs/anticipate/) for examples.
-use anticipate_core::{CinemaOptions, InterpreterOptions, ScriptFile};
+use anticipate_runner::{CinemaOptions, InterpreterOptions, ScriptFile};
 use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
 use colored::Colorize;

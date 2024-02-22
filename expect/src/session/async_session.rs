@@ -112,8 +112,8 @@ impl<P, S: AsyncRead + Unpin> Session<P, S> {
     #[cfg_attr(windows, doc = "```no_run")]
     #[cfg_attr(unix, doc = "```")]
     /// # futures_lite::future::block_on(async {
-    /// let mut p = expectrl::spawn("echo 123").unwrap();
-    /// let m = p.expect(expectrl::Regex("\\d+")).await.unwrap();
+    /// let mut p = anticipate::spawn("echo 123").unwrap();
+    /// let m = p.expect(anticipate::Regex("\\d+")).await.unwrap();
     /// assert_eq!(m.get(0).unwrap(), b"123");
     /// # });
     /// ```
@@ -121,9 +121,9 @@ impl<P, S: AsyncRead + Unpin> Session<P, S> {
     #[cfg_attr(windows, doc = "```no_run")]
     #[cfg_attr(unix, doc = "```")]
     /// # futures_lite::future::block_on(async {
-    /// let mut p = expectrl::spawn("echo 123").unwrap();
+    /// let mut p = anticipate::spawn("echo 123").unwrap();
     /// p.set_expect_lazy(true);
-    /// let m = p.expect(expectrl::Regex("\\d+")).await.unwrap();
+    /// let m = p.expect(anticipate::Regex("\\d+")).await.unwrap();
     /// assert_eq!(m.get(0).unwrap(), b"1");
     /// # });
     /// ```
@@ -149,10 +149,10 @@ impl<P, S: AsyncRead + Unpin> Session<P, S> {
     #[cfg_attr(any(target_os = "macos", windows), doc = "```no_run")]
     #[cfg_attr(not(any(target_os = "macos", windows)), doc = "```")]
     /// # futures_lite::future::block_on(async {
-    /// let mut p = expectrl::spawn("echo 123").unwrap();
+    /// let mut p = anticipate::spawn("echo 123").unwrap();
     /// // wait to guarantee that check will successed (most likely)
     /// std::thread::sleep(std::time::Duration::from_secs(1));
-    /// let m = p.check(expectrl::Regex("\\d+")).await.unwrap();
+    /// let m = p.check(anticipate::Regex("\\d+")).await.unwrap();
     /// assert_eq!(m.get(0).unwrap(), b"123");
     /// # });
     /// ```
@@ -180,7 +180,7 @@ impl<Proc, S: AsyncWrite + Unpin> Session<Proc, S> {
     /// # Example
     ///
     /// ```
-    /// use expectrl::{spawn, ControlCode};
+    /// use anticipate::{spawn, ControlCode};
     ///
     /// let mut proc = spawn("cat").unwrap();
     ///
@@ -199,7 +199,7 @@ impl<Proc, S: AsyncWrite + Unpin> Session<Proc, S> {
     /// # Example
     ///
     /// ```
-    /// use expectrl::{spawn, ControlCode};
+    /// use anticipate::{spawn, ControlCode};
     ///
     /// let mut proc = spawn("cat").unwrap();
     ///

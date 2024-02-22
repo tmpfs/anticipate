@@ -119,16 +119,16 @@ impl<P, S: Read + NonBlocking> Session<P, S> {
     ///
     #[cfg_attr(windows, doc = "```no_run")]
     #[cfg_attr(unix, doc = "```")]
-    /// let mut p = expectrl::spawn("echo 123").unwrap();
-    /// let m = p.expect(expectrl::Regex("\\d+")).unwrap();
+    /// let mut p = anticipate::spawn("echo 123").unwrap();
+    /// let m = p.expect(anticipate::Regex("\\d+")).unwrap();
     /// assert_eq!(m.get(0).unwrap(), b"123");
     /// ```
     ///
     #[cfg_attr(windows, doc = "```no_run")]
     #[cfg_attr(unix, doc = "```")]
-    /// let mut p = expectrl::spawn("echo 123").unwrap();
+    /// let mut p = anticipate::spawn("echo 123").unwrap();
     /// p.set_expect_lazy(true);
-    /// let m = p.expect(expectrl::Regex("\\d+")).unwrap();
+    /// let m = p.expect(anticipate::Regex("\\d+")).unwrap();
     /// assert_eq!(m.get(0).unwrap(), b"1");
     /// ```
     ///
@@ -249,7 +249,7 @@ impl<P, S: Read + NonBlocking> Session<P, S> {
     ///
     #[cfg_attr(any(windows, target_os = "macos"), doc = "```no_run")]
     #[cfg_attr(not(any(target_os = "macos", windows)), doc = "```")]
-    /// use expectrl::{spawn, Regex};
+    /// use anticipate::{spawn, Regex};
     /// use std::time::Duration;
     ///
     /// let mut p = spawn("echo 123").unwrap();
@@ -304,7 +304,7 @@ impl<P, S: Read + NonBlocking> Session<P, S> {
     ///
     #[cfg_attr(windows, doc = "```no_run")]
     #[cfg_attr(unix, doc = "```")]
-    /// use expectrl::{spawn, Regex};
+    /// use anticipate::{spawn, Regex};
     /// use std::time::Duration;
     ///
     /// let mut p = spawn("cat").unwrap();
@@ -342,7 +342,7 @@ impl<Proc, Stream: Write> Session<Proc, Stream> {
     /// # Example
     ///
     /// ```
-    /// use expectrl::{spawn, ControlCode};
+    /// use anticipate::{spawn, ControlCode};
     ///
     /// let mut proc = spawn("cat").unwrap();
     ///
@@ -359,7 +359,7 @@ impl<Proc, Stream: Write> Session<Proc, Stream> {
     /// # Example
     ///
     /// ```
-    /// use expectrl::{spawn, ControlCode};
+    /// use anticipate::{spawn, ControlCode};
     ///
     /// let mut proc = spawn("cat").unwrap();
     ///

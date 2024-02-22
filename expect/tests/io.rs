@@ -1,8 +1,8 @@
-use expectrl::{Captures, ControlCode, Needle, Session};
+use anticipate::{Captures, ControlCode, Needle, Session};
 use std::{process::Command, thread, time::Duration};
 
 #[cfg(unix)]
-use expectrl::WaitStatus;
+use anticipate::WaitStatus;
 
 #[cfg(feature = "async")]
 use futures_lite::{
@@ -548,7 +548,7 @@ fn _p_send(proc: &mut Session, buf: &str) -> std::io::Result<()> {
     }
 }
 
-fn _p_expect(proc: &mut Session, n: impl Needle) -> Result<Captures, expectrl::Error> {
+fn _p_expect(proc: &mut Session, n: impl Needle) -> Result<Captures, anticipate::Error> {
     #[cfg(not(feature = "async"))]
     {
         proc.expect(n)
@@ -662,8 +662,8 @@ fn _p_try_read(proc: &mut Session, buf: &mut [u8]) -> std::io::Result<usize> {
 }
 
 #[cfg(unix)]
-fn _p_interact(proc: &mut Session) -> Result<(), expectrl::Error> {
-    use expectrl::{interact::InteractOptions, stream::stdin::Stdin};
+fn _p_interact(proc: &mut Session) -> Result<(), anticipate::Error> {
+    use anticipate::{interact::InteractOptions, stream::stdin::Stdin};
     use std::io::stdout;
 
     let mut stdin = Stdin::open()?;

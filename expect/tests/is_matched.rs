@@ -1,6 +1,6 @@
 #![cfg(unix)]
 
-use expectrl::{spawn, Eof, NBytes, Regex, WaitStatus};
+use anticipate::{spawn, Eof, NBytes, Regex, WaitStatus};
 use std::thread;
 use std::time::Duration;
 
@@ -215,7 +215,7 @@ fn expect_after_is_matched_eof() {
     #[cfg(not(target_os = "linux"))]
     assert_eq!(m.get(0).unwrap(), b"");
 
-    assert!(matches!(p.expect("").unwrap_err(), expectrl::Error::Eof));
+    assert!(matches!(p.expect("").unwrap_err(), anticipate::Error::Eof));
 }
 
 #[cfg(target_os = "linux")]
@@ -239,7 +239,7 @@ fn expect_after_is_matched_eof() {
 
         assert!(matches!(
             p.expect("").await.unwrap_err(),
-            expectrl::Error::Eof
+            anticipate::Error::Eof
         ));
     })
 }

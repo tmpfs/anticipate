@@ -1,4 +1,4 @@
-use expectrl::{repl::spawn_python, Expect, Regex};
+use anticipate::{repl::spawn_python, Expect, Regex};
 
 #[cfg(not(feature = "async"))]
 fn main() {

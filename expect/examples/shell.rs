@@ -1,9 +1,9 @@
-use expectrl::repl::ReplSession;
+use anticipate::repl::ReplSession;
 use std::io::Result;
 
 #[cfg(all(unix, not(feature = "async")))]
 fn main() -> Result<()> {
-    let mut p = expectrl::spawn("sh")?;
+    let mut p = anticipate::spawn("sh")?;
     p.get_process_mut().set_echo(true, None)?;
 
     let mut shell = ReplSession::new(p, String::from("sh-5.1$"), Some(String::from("exit")), true);
@@ -32,7 +32,7 @@ fn exec(shell: &mut ReplSession, cmd: &str) -> Result<String> {
 #[cfg(all(unix, feature = "async"))]
 fn main() -> Result<()> {
     futures_lite::future::block_on(async {
-        let mut p = expectrl::spawn("sh")?;
+        let mut p = anticipate::spawn("sh")?;
         p.get_process_mut().set_echo(true, None)?;
 
         let mut shell =

@@ -1,4 +1,4 @@
-use expectrl::{
+use anticipate::{
     interact::{actions::lookup::Lookup, InteractOptions},
     spawn,
     stream::stdin::Stdin,

@@ -1,6 +1,6 @@
 #![cfg(unix)]
 
-use expectrl::{
+use anticipate::{
     repl::{spawn_bash, spawn_python},
     ControlCode, Expect, WaitStatus,
 };
@@ -30,7 +30,7 @@ fn bash() {
 #[cfg(target_os = "linux")]
 #[test]
 fn bash_with_log() {
-    use expectrl::{repl::ReplSession, session};
+    use anticipate::{repl::ReplSession, session};
 
     let p = spawn_bash().unwrap();
     let prompt = p.get_prompt().to_owned();
@@ -77,7 +77,7 @@ fn bash() {
 #[test]
 fn bash_with_log() {
     futures_lite::future::block_on(async {
-        use expectrl::{repl::ReplSession, session};
+        use anticipate::{repl::ReplSession, session};
 
         let p = spawn_bash().await.unwrap();
         let prompt = p.get_prompt().to_owned();

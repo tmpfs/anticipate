@@ -1,8 +1,8 @@
-use expectrl::{spawn, Error};
+use anticipate::{spawn, Error};
 
 fn main() -> Result<(), Error> {
     let p = spawn("cat")?;
-    let mut p = expectrl::session::log(p, std::io::stdout())?;
+    let mut p = anticipate::session::log(p, std::io::stdout())?;
 
     #[cfg(not(feature = "async"))]
     {

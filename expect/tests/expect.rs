@@ -1,4 +1,4 @@
-use expectrl::{spawn, Eof, NBytes, Regex};
+use anticipate::{spawn, Eof, NBytes, Regex};
 use std::time::Duration;
 
 #[cfg(not(feature = "async"))]
@@ -145,7 +145,7 @@ fn expect_n_bytes() {
 #[cfg(windows)]
 #[test]
 fn expect_n_bytes() {
-    use expectrl::Session;
+    use anticipate::Session;
     use std::process::Command;
 
     let mut session = Session::spawn(Command::new(
@@ -290,7 +290,7 @@ fn expect_eof_timeout() {
     let mut p = spawn("sleep 3").expect("cannot run sleep 3");
     p.set_expect_timeout(Some(Duration::from_millis(100)));
     match p.expect(Eof) {
-        Err(expectrl::Error::ExpectTimeout) => {}
+        Err(anticipate::Error::ExpectTimeout) => {}
         r => panic!("reached a timeout {r:?}"),
     }
 }
@@ -303,7 +303,7 @@ fn expect_eof_timeout() {
         let mut p = spawn("sleep 3").expect("cannot run sleep 3");
         p.set_expect_timeout(Some(Duration::from_millis(100)));
         match p.expect(Eof).await {
-            Err(expectrl::Error::ExpectTimeout) => {}
+            Err(anticipate::Error::ExpectTimeout) => {}
             r => panic!("reached a timeout {r:?}"),
         }
     })
@@ -318,7 +318,7 @@ fn expect_eof_timeout() {
     #[cfg(not(feature = "async"))]
     {
         match p.expect(Eof) {
-            Err(expectrl::Error::ExpectTimeout) => {}
+            Err(anticipate::Error::ExpectTimeout) => {}
             r => panic!("should raise TimeOut {:?}", r),
         }
     }
@@ -327,7 +327,7 @@ fn expect_eof_timeout() {
     {
         futures_lite::future::block_on(async {
             match p.expect(Eof).await {
-                Err(expectrl::Error::ExpectTimeout) => {}
+                Err(anticipate::Error::ExpectTimeout) => {}
                 r => panic!("should raise TimeOut {:?}", r),
             }
         })

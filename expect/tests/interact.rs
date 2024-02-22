@@ -9,17 +9,17 @@ use std::{
 use std::io::sink;
 
 #[cfg(not(feature = "async"))]
-use expectrl::{interact::actions::lookup::Lookup, spawn, stream::stdin::Stdin, NBytes};
+use anticipate::{interact::actions::lookup::Lookup, spawn, stream::stdin::Stdin, NBytes};
 
 #[cfg(not(feature = "async"))]
-use expectrl::WaitStatus;
+use anticipate::WaitStatus;
 
 #[cfg(unix)]
 #[cfg(not(feature = "async"))]
 #[ignore = "It requires manual interaction; Or it's necessary to redirect an stdin of current process"]
 #[test]
 fn interact_callback() {
-    use expectrl::interact::InteractOptions;
+    use anticipate::interact::InteractOptions;
 
     let mut input_handle = Lookup::new();
     let mut output_handle = Lookup::new();
@@ -54,9 +54,9 @@ fn interact_callback() {
 #[cfg(not(feature = "async"))]
 #[test]
 fn interact_output_callback() {
-    use expectrl::interact::{InteractOptions, InteractSession};
+    use anticipate::interact::{InteractOptions, InteractSession};
 
-    let mut session = expectrl::spawn("sleep 1 && echo 'Hello World'").unwrap();
+    let mut session = anticipate::spawn("sleep 1 && echo 'Hello World'").unwrap();
 
     let mut stdin = Stdin::open().unwrap();
     let stdout = std::io::sink();
@@ -86,9 +86,9 @@ fn interact_output_callback() {
 #[cfg(not(feature = "async"))]
 #[test]
 fn interact_callbacks_called_after_exit() {
-    use expectrl::interact::InteractOptions;
+    use anticipate::interact::InteractOptions;
 
-    let mut session = expectrl::spawn("echo 'Hello World'").unwrap();
+    let mut session = anticipate::spawn("echo 'Hello World'").unwrap();
 
     assert_eq!(
         session.get_process().wait().unwrap(),
@@ -121,7 +121,7 @@ fn interact_callbacks_called_after_exit() {
 #[cfg(not(any(feature = "async", feature = "polling")))]
 #[test]
 fn interact_callbacks_with_stream_redirection() {
-    use expectrl::interact::InteractOptions;
+    use anticipate::interact::InteractOptions;
 
     let output_lines = vec![
         "NO_MATCHED\n".to_string(),
@@ -155,7 +155,7 @@ fn interact_callbacks_with_stream_redirection() {
 #[cfg(not(any(feature = "async", feature = "polling")))]
 #[test]
 fn interact_filters() {
-    use expectrl::interact::InteractOptions;
+    use anticipate::interact::InteractOptions;
 
     let reader = ReaderWithDelayEof::new("1009\nNO\n", Duration::from_secs(4));
     let mut writer = io::Cursor::new(vec![0; 2048]);
@@ -195,7 +195,7 @@ fn interact_filters() {
 #[cfg(all(unix, not(any(feature = "async", feature = "polling"))))]
 #[test]
 fn interact_context() {
-    use expectrl::interact::InteractOptions;
+    use anticipate::interact::InteractOptions;
 
     let mut session = spawn("cat").unwrap();
 
@@ -254,7 +254,7 @@ fn interact_on_output_not_matched() {
     // Which may cause it to stay buffered in session.
     // Verify this buffer was cleaned and 123 won't be accessed then.
 
-    use expectrl::interact::InteractOptions;
+    use anticipate::interact::InteractOptions;
 
     let reader = ListReaderWithDelayedEof::new(
         vec![
@@ -321,8 +321,8 @@ fn interact_on_output_not_matched() {
 //     let mut reader = ReaderWithDelayEof::new(commands, Duration::from_secs(4));
 //     let mut writer = io::Cursor::new(vec![0; 1024]);
 
-//     let mut session = expectrl::spawn("cat").unwrap();
-//     let mut opts = expectrl::interact::InteractOptions::default();
+//     let mut session = anticipate::spawn("cat").unwrap();
+//     let mut opts = anticipate::interact::InteractOptions::default();
 
 //     opts.interact(&mut session, &mut reader, &mut writer)
 //         .unwrap();
@@ -339,7 +339,7 @@ fn interact_on_output_not_matched() {
 #[cfg(feature = "async")]
 #[test]
 fn interact_stream_redirection() {
-    use expectrl::interact::InteractOptions;
+    use anticipate::interact::InteractOptions;
 
     futures_lite::future::block_on(async {
         let commands = "Hello World\nIt works :)\n";
@@ -347,7 +347,7 @@ fn interact_stream_redirection() {
         let reader = ReaderWithDelayEof::new(commands, Duration::from_secs(4));
         let mut writer = io::Cursor::new(vec![0; 1024]);
 
-        let mut session = expectrl::spawn("cat").unwrap();
+        let mut session = anticipate::spawn("cat").unwrap();
 
         session
             .interact(reader, &mut writer)
@@ -368,12 +368,12 @@ fn interact_stream_redirection() {
 #[cfg(feature = "async")]
 #[test]
 fn interact_output_callback() {
-    use expectrl::{
+    use anticipate::{
         interact::{actions::lookup::Lookup, InteractOptions, InteractSession},
         stream::stdin::Stdin,
     };
 
-    let mut session = expectrl::spawn("sleep 1 && echo 'Hello World'").unwrap();
+    let mut session = anticipate::spawn("sleep 1 && echo 'Hello World'").unwrap();
 
     let mut stdin = Stdin::open().unwrap();
     let stdout = std::io::sink();

@@ -1,4 +1,4 @@
-use anticipate_core::{Error, Instruction, ScriptFile, ScriptParser};
+use anticipate_runner::{Error, Instruction, ScriptFile, ScriptParser};
 use anyhow::Result;
 
 #[test]

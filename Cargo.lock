@@ -86,7 +86,7 @@ dependencies = [
 name = "anticipate-cli"
 version = "0.3.0"
 dependencies = [
- "anticipate-core",
+ "anticipate-runner",
  "anyhow",
  "clap",
  "colored",
@@ -96,7 +96,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "anticipate-core"
+name = "anticipate-runner"
 version = "0.4.0"
 dependencies = [
  "anticipate",

@@ -153,7 +153,7 @@ impl Needle for char {
 /// # Example
 ///
 /// ```no_run,ignore
-/// use expectrl::{spawn, Any};
+/// use anticipate::{spawn, Any};
 ///
 /// let mut p = spawn("cat").unwrap();
 /// p.expect(Any(["we", "are", "here"])).unwrap();
@@ -162,7 +162,7 @@ impl Needle for char {
 /// To be able to combine different types of lookups you can call [Any::boxed].
 ///
 /// ```no_run,ignore
-/// use expectrl::{spawn, Any, NBytes};
+/// use anticipate::{spawn, Any, NBytes};
 ///
 /// let mut p = spawn("cat").unwrap();
 /// p.expect(Any::boxed(vec![Box::new("we"), Box::new(NBytes(3))])).unwrap();

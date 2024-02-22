@@ -7,7 +7,7 @@
 //!
 //! ```no_run,ignore
 //! use std::{process::Command, io::prelude::*};
-//! use expectrl::Session;
+//! use anticipate::Session;
 //!
 //! let mut p = Session::spawn(Command::new("cat")).unwrap();
 //! writeln!(p, "Hello World").unwrap();
@@ -76,7 +76,7 @@ impl Session {
     ///
     /// ```no_run
     /// use std::process::Command;
-    /// use expectrl::Session;
+    /// use anticipate::Session;
     ///
     /// let p = Session::spawn(Command::new("cat"));
     /// ```
@@ -145,9 +145,9 @@ impl<P, S> Session<P, S> {
         doc = "```ignore"
     )]
     /// use std::io::{stdout, Cursor};
-    /// use expectrl::{self, interact::InteractOptions};
+    /// use anticipate::{self, interact::InteractOptions};
     ///
-    /// let mut p = expectrl::spawn("cat").unwrap();
+    /// let mut p = anticipate::spawn("cat").unwrap();
     ///
     /// let input = Cursor::new(String::from("Some text right here"));
     ///
@@ -169,7 +169,7 @@ impl<P, S> Session<P, S> {
 /// # Example
 ///
 /// ```
-/// use expectrl::{spawn, session::log};
+/// use anticipate::{spawn, session::log};
 ///
 /// let p = spawn("cat").unwrap();
 /// let p = log(p, std::io::stdout());
@@ -195,7 +195,7 @@ where
 /// # Example
 ///
 /// ```
-/// use expectrl::{spawn, session::log};
+/// use anticipate::{spawn, session::log};
 ///
 /// let p = spawn("cat").unwrap();
 /// let p = log(p, std::io::stdout());

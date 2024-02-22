@@ -10,8 +10,8 @@ use futures_lite::AsyncBufReadExt;
 #[cfg(feature = "async")]
 use futures_lite::AsyncReadExt;
 
-use expectrl::session;
-use expectrl::spawn;
+use anticipate::session;
+use anticipate::spawn;
 
 #[test]
 #[cfg(windows)]

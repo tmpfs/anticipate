@@ -13,10 +13,10 @@
 ///
 /// # Example
 /// ```no_run
-/// # let mut session = expectrl::spawn("cat").unwrap();
+/// # let mut session = anticipate::spawn("cat").unwrap();
 /// #
 /// loop {
-///     expectrl::check!{
+///     anticipate::check!{
 ///         &mut session,
 ///         world = "\r" => {
 ///             // handle end of line

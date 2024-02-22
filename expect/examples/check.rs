@@ -1,4 +1,4 @@
-use expectrl::{check, spawn, Error};
+use anticipate::{check, spawn, Error};
 
 #[cfg(not(feature = "async"))]
 fn main() {

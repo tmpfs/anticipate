@@ -1,4 +1,4 @@
-use expectrl::{spawn, Session};
+use anticipate::{spawn, Session};
 
 #[cfg(feature = "async")]
 use futures_lite::io::{AsyncReadExt, AsyncWriteExt};

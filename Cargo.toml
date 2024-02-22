@@ -13,6 +13,6 @@ anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
 clap = { version = "4.5", features = ["derive", "wrap_help", "env"] }
-anticipate-core = { version = "0.4", path = "runner" }
+anticipate-runner = { version = "0.4", path = "runner" }
 rayon = "1.8"
 colored = "2"

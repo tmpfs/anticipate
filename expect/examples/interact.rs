@@ -1,6 +1,6 @@
 //! To run an example run `cargo run --example interact`.
 
-use expectrl::{interact::InteractOptions, spawn, stream::stdin::Stdin};
+use anticipate::{interact::InteractOptions, spawn, stream::stdin::Stdin};
 use std::io::stdout;
 
 #[cfg(unix)]

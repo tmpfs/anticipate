@@ -1,6 +1,6 @@
 #[cfg(windows)]
 fn main() {
-    use expectrl::{repl::spawn_powershell, ControlCode, Regex};
+    use anticipate::{repl::spawn_powershell, ControlCode, Regex};
 
     #[cfg(feature = "async")]
     {

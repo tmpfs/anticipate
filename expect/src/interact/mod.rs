@@ -2,7 +2,7 @@
 //!
 #![cfg_attr(all(unix, not(feature = "async")), doc = "```no_run")]
 #![cfg_attr(not(all(unix, not(feature = "async"))), doc = "```ignore")]
-//! use expectrl::{interact::{InteractOptions, actions::lookup::Lookup}, spawn, stream::stdin::Stdin, Regex};
+//! use anticipate::{interact::{InteractOptions, actions::lookup::Lookup}, spawn, stream::stdin::Stdin, Regex};
 //!
 //! #[derive(Debug)]
 //! enum Answer {

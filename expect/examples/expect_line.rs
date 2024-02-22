@@ -1,8 +1,8 @@
-use expectrl::{self, Any, Eof};
+use anticipate::{self, Any, Eof};
 
 #[cfg(not(feature = "async"))]
 fn main() {
-    let mut session = expectrl::spawn("ls -al").expect("Can't spawn a session");
+    let mut session = anticipate::spawn("ls -al").expect("Can't spawn a session");
 
     loop {
         let m = session
@@ -31,7 +31,7 @@ fn main() {
 #[cfg(feature = "async")]
 fn main() {
     futures_lite::future::block_on(async {
-        let mut session = expectrl::spawn("ls -al").expect("Can't spawn a session");
+        let mut session = anticipate::spawn("ls -al").expect("Can't spawn a session");
 
         loop {
             let m = session

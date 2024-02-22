@@ -37,7 +37,7 @@
 //! ### An example for interacting via ftp.
 //!
 //! ```no_run,ignore
-//! use expectrl::{spawn, Regex, Eof, WaitStatus};
+//! use anticipate::{spawn, Regex, Eof, WaitStatus};
 //!
 //! let mut p = spawn("ftp speedtest.tele2.net").unwrap();
 //! p.expect(Regex("Name \\(.*\\):")).unwrap();
@@ -60,7 +60,7 @@
 //!
 //! ```no_run,ignore
 //! use std::{process::Command, io::prelude::*};
-//! use expectrl::Session;
+//! use anticipate::Session;
 //!
 //! let mut echo_hello = Command::new("sh");
 //! echo_hello.arg("-c").arg("echo hello");
@@ -73,7 +73,7 @@
 //!
 //! ```no_run,ignore
 //! use std::io::{stdout, prelude::*};
-//! use expectrl::{spawn, session::log};
+//! use anticipate::{spawn, session::log};
 //!
 //! let mut sh = log(spawn("sh").unwrap(), stdout()).unwrap();
 //!
@@ -85,7 +85,7 @@
 //! You need to provide a `features=["async"]` flag to use it.
 //!
 //! ```no_run,ignore
-//! use expectrl::spawn;
+//! use anticipate::spawn;
 //!
 //! let mut p = spawn("cat").await.unwrap();
 //! p.expect("hello").await.unwrap();
@@ -94,7 +94,7 @@
 //! ### An example of interact session with `STDIN` and `STDOUT`
 //!
 //! ```no_run,ignore
-//! use expectrl::{spawn, stream::stdin::Stdin};
+//! use anticipate::{spawn, stream::stdin::Stdin};
 //! use std::io::stdout;
 //!
 //! let mut sh = spawn("cat").expect("Failed to spawn a 'cat' process");
@@ -144,7 +144,7 @@ pub use session::Session;
 ///
 /// ```no_run,ignore
 /// use std::{thread, time::Duration, io::{Read, Write}};
-/// use expectrl::{spawn, ControlCode};
+/// use anticipate::{spawn, ControlCode};
 ///
 /// let mut p = spawn("cat").unwrap();
 /// p.send_line("Hello World").unwrap();

@@ -1,6 +1,6 @@
 #![cfg(unix)]
 
-use expectrl::{spawn, Any, Eof, NBytes, Regex};
+use anticipate::{spawn, Any, Eof, NBytes, Regex};
 use std::thread;
 use std::time::Duration;
 
@@ -207,7 +207,7 @@ fn check_macro() {
 
     thread::sleep(Duration::from_millis(600));
 
-    expectrl::check!(
+    anticipate::check!(
         &mut session,
         world = "\r" => {
             assert_eq!(world.get(0).unwrap(), b"\r");
@@ -232,7 +232,7 @@ fn check_macro() {
     thread::sleep(Duration::from_millis(600));
 
     futures_lite::future::block_on(async {
-        expectrl::check!(
+        anticipate::check!(
             session,
             // world = "\r" => {
             //     assert_eq!(world.get(0).unwrap(), b"\r");
@@ -257,7 +257,7 @@ fn check_macro_doest_consume_missmatch() {
     session.send_line("Hello World").unwrap();
     thread::sleep(Duration::from_millis(600));
 
-    expectrl::check!(
+    anticipate::check!(
         &mut session,
         _ = "Something which is not inside" => {
             panic!("Unexpected result");
@@ -268,7 +268,7 @@ fn check_macro_doest_consume_missmatch() {
     session.send_line("345").unwrap();
     thread::sleep(Duration::from_millis(600));
 
-    expectrl::check!(
+    anticipate::check!(
         &mut session,
         buffer = Eof => {
             assert_eq!(buffer.get(0).unwrap(), b"Hello World\r\n")
@@ -287,7 +287,7 @@ fn check_macro_doest_consume_missmatch() {
         session.send_line("Hello World").await.unwrap();
         thread::sleep(Duration::from_millis(600));
 
-        expectrl::check!(
+        anticipate::check!(
             session,
             _ = "Something which is not inside" => {
                 panic!("Unexpected result");
@@ -299,7 +299,7 @@ fn check_macro_doest_consume_missmatch() {
         session.send_line("345").await.unwrap();
         thread::sleep(Duration::from_millis(600));
 
-        expectrl::check!(
+        anticipate::check!(
             session,
             buffer = Eof => {
                 assert_eq!(buffer.get(0).unwrap(), b"Hello World\r\n")
@@ -315,7 +315,7 @@ fn check_macro_doest_consume_missmatch() {
 #[test]
 fn check_macro_with_different_needles() {
     let check_input = |session: &mut _| {
-        expectrl::check!(
+        anticipate::check!(
             session,
             number = Any(["123", "345"]) => {
                 assert_eq!(number.get(0).unwrap(), b"345")
@@ -351,7 +351,7 @@ fn check_macro_with_different_needles() {
         session.send_line("Hello World").await.unwrap();
 
         thread::sleep(Duration::from_millis(600));
-        expectrl::check!(
+        anticipate::check!(
             session,
             number = Any(["123", "345"]) => {
                 assert_eq!(number.get(0).unwrap(), b"345")
@@ -369,7 +369,7 @@ fn check_macro_with_different_needles() {
         session.send_line("345").await.unwrap();
 
         thread::sleep(Duration::from_millis(600));
-        expectrl::check!(
+        anticipate::check!(
             session,
             number = Any(["123", "345"]) => {
                 assert_eq!(number.get(0).unwrap(), b"345")
