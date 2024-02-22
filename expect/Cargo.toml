@@ -1,6 +1,6 @@
 [package]
 name = "anticipate"
-version = "0.8.0"
+version = "0.8.1"
 authors = ["tmpfs <muji@tmpfs.org>", "Maxim Zhiburt <zhiburt@gmail.com>"]
 edition = "2021"
 resolver = "2"
