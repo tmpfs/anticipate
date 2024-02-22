@@ -9,7 +9,6 @@ repository = "https://github.com/tmpfs/anticipate"
 license = "MIT"
 categories = ["development-tools::testing", "os::unix-apis", "os::windows-apis"]
 keywords = ["expect", "pty", "testing", "terminal", "automation"]
-readme = "README.md"
 
 [features]
 polling = ["dep:polling", "dep:crossbeam-channel"]
