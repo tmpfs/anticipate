@@ -1,7 +1,7 @@
 use crate::{
     resolve_path, Error, Instruction, Instructions, Result, ScriptParser,
 };
-use expectrl::{
+use anticipate::{
     repl::ReplSession,
     session::{log, tee, Session},
     ControlCode, Expect, Regex,

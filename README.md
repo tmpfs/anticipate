@@ -1,6 +1,6 @@
 # Anticipate
 
-Script based automation using [expectrl](https://docs.rs/expectrl/) with support for [asciinema][].
+Script based automation using with support for [asciinema][].
 
 Perfect for demos and automating integration testing of command line interfaces.
 

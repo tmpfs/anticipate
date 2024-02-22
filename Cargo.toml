@@ -1,18 +1,18 @@
 [package]
-name = "anticipate"
+name = "anticipate-cli"
 version = "0.3.0"
 edition = "2021"
 description = "Script runner with asciinema support"
 license = "MIT OR Apache-2.0"
 
 [workspace]
-members = ["core"]
+members = ["runner", "expect"]
 
 [dependencies]
 anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
 clap = { version = "4.5", features = ["derive", "wrap_help", "env"] }
-anticipate-core = { version = "0.3", path = "core" }
+anticipate-core = { version = "0.4", path = "runner" }
 rayon = "1.8"
 colored = "2"
