@@ -1,6 +1,6 @@
 //! Parser and interpreter for the anticipate script automation tool.
 //!
-//! Moved to [anticipate-runner]().
+//! Moved to [anticipate-runner](https://docs.rs/anticipate-runner).
 #![deny(missing_docs)]
 #![forbid(unsafe_code)]
 
