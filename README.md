@@ -1,14 +1,34 @@
 # Anticipate
 
-Script based automation using with support for [asciinema][].
+Script based automation like `expect(1)` with support for [asciinema][].
 
-Perfect for demos and automating integration testing of command line interfaces.
+Perfect for demos and testing command line interfaces.
 
 ## Install
 
 ```
-cargo install anticipate
+cargo install anticipate-cli
 ```
+
+## Example
+
+Create a directory, initialize a server config, print the config file, start the server and then send SIGTERM to shut it down.
+
+```shell
+mkdir -p target/server/accounts
+#$ readline
+
+server init target/config.toml --path server/accounts
+#$ readline
+
+cat target/config.toml
+#$ expect path = "server/accounts"
+
+server start target/config.toml
+#$ sendcontrol ^C
+```
+
+See the `examples` and `fixtures` folders for more examples.
 
 ## Usage
 
@@ -39,26 +59,6 @@ anticipate \
 ```
 
 See the progam help for more options.
-
-## Example
-
-Create a directory, initialize a server config, print the config file, start the server and then send SIGTERM to shut it down.
-
-```shell
-mkdir -p target/server/accounts
-#$ readline
-
-server init target/config.toml --path server/accounts
-#$ readline
-
-cat target/config.toml
-#$ expect path = "server/accounts"
-
-server start target/config.toml
-#$ sendcontrol ^C
-```
-
-See the `examples` and `fixtures` folders for more examples.
 
 ## Syntax
 
