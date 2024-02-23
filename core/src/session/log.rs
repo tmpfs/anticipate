@@ -23,6 +23,10 @@ impl LogWriter for DefaultLogWriter {
 /// If the data can be converted to UTF-8 it is printed
 /// as a string otherwise a debug representation of the
 /// bytes are printed.
+///
+/// Be aware that if you are writing data that would be masked,
+/// for example, entering a password at an interactive prompt
+/// the plain text value will be logged.
 #[derive(Debug)]
 pub struct PrefixLogWriter;
 
@@ -46,6 +50,10 @@ impl LogWriter for PrefixLogWriter {
 }
 
 /// Tee log writer does not format read and write logs.
+///
+/// Be aware that if you are writing data that would be masked,
+/// for example, entering a password at an interactive prompt
+/// the plain text value will be logged.
 #[derive(Debug)]
 pub struct TeeLogWriter;
 

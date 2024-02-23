@@ -39,6 +39,7 @@ pub type OsProcessStream = OsProcStream;
 pub use log::*;
 pub use session::Session;
 
+/// Session without logging.
 pub type DefaultSession = Session<DefaultLogWriter>;
 
 /// Spawn a session with logger and timeout options.
