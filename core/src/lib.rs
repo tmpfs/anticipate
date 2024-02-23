@@ -67,7 +67,6 @@ mod needle;
 pub mod process;
 pub mod repl;
 pub mod session;
-pub mod stream;
 
 pub use captures::Captures;
 pub use control_code::ControlCode;

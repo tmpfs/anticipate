@@ -18,12 +18,12 @@
 #[doc(hidden)]
 pub mod pty_session;
 mod session;
+mod log;
 
 use std::{io::Write, process::Command};
 
 use crate::{
     process::Process,
-    stream::log::{DefaultLogWriter, LogStream, TeeLogWriter},
     Error,
 };
 
@@ -55,6 +55,7 @@ pub type OsProcess = OsProc;
 pub type OsProcessStream = OsProcStream;
 
 pub use session::Session;
+pub use log::*;
 
 impl Session {
     /// Spawns a session on a platform process.
