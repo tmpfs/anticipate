@@ -12,7 +12,6 @@ use conpty::{
 };
 
 use super::{Healthcheck, NonBlocking, Process as ProcessTrait};
-use crate::error::to_io_error;
 
 /// A windows representation of a [Process] via [conpty::Process].
 #[derive(Debug)]
@@ -26,19 +25,17 @@ impl ProcessTrait for WinProcess {
 
     fn spawn<S: AsRef<str>>(cmd: S) -> Result<Self> {
         spawn(cmd.as_ref())
-            .map_err(to_io_error(""))
             .map(|proc| WinProcess { proc })
     }
 
     fn spawn_command(command: Self::Command) -> Result<Self> {
         conpty::Process::spawn(command)
-            .map_err(to_io_error(""))
             .map(|proc| WinProcess { proc })
     }
 
     fn open_stream(&mut self) -> Result<Self::Stream> {
-        let input = self.proc.input().map_err(to_io_error(""))?;
-        let output = self.proc.output().map_err(to_io_error(""))?;
+        let input = self.proc.input()?;
+        let output = self.proc.output()?;
         Ok(Self::Stream::new(output, input))
     }
 }

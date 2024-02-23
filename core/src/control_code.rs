@@ -1,4 +1,4 @@
-//! A module which contains [ControlCode] type.
+//! Type for control codes.
 
 use std::convert::TryFrom;
 

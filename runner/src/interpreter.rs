@@ -2,7 +2,7 @@ use crate::{
     resolve_path, Error, Instruction, Instructions, Result, ScriptParser,
 };
 use anticipate::{
-    log::{DefaultLogWriter, LogWriter, PrefixLogWriter, TeeLogWriter},
+    log::{NoopLogWriter, LogWriter, PrefixLogWriter, StandardLogWriter},
     repl::ReplSession,
     spawn_with_options, ControlCode, Expect, Regex, Session,
 };
@@ -281,11 +281,11 @@ impl ScriptFile {
 
         let cmd = parse_command(&exec_cmd)?;
         if !options.echo && !options.format {
-            let pty: Session<DefaultLogWriter> =
+            let pty: Session<NoopLogWriter> =
                 spawn_with_options(cmd, None, timeout)?;
             start(pty, prompt, options, pragma, instructions)?;
         } else if options.echo && !options.format {
-            let pty = spawn_with_options(cmd, Some(TeeLogWriter), timeout)?;
+            let pty = spawn_with_options(cmd, Some(StandardLogWriter), timeout)?;
             start(pty, prompt, options, pragma, instructions)?;
         } else if options.echo && options.format {
             let pty =

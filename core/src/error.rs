@@ -3,64 +3,30 @@ use std::fmt;
 use std::fmt::Display;
 use std::io;
 
-#[allow(variant_size_differences)]
-/// An main error type used in [crate].
-#[derive(Debug)]
+use thiserror::Error;
+
+/// Error type for the library.
+#[derive(Debug, Error)]
 pub enum Error {
-    /// An Error in IO operation.
-    IO(io::Error),
-    /// An Error in command line parsing.
+    /// Error in command line parsing.
+    #[error("failed to parse command line")]
     CommandParsing,
-    /// An Error in regex parsing.
+    /// Error in regex parsing.
+    #[error("failed to parse regex")]
     RegexParsing,
     /// An timeout was reached while waiting in expect call.
+    #[error("reached the timeout for an expectation")]
     ExpectTimeout,
     /// Unhandled EOF error.
+    #[error("unhandled EOF")]
     Eof,
-    /// It maybe OS specific error or a general erorr.
-    Other {
-        /// The reason of the erorr.
-        message: String,
-        /// An underlying error message.
-        err: String,
-    },
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::IO(err) => write!(f, "IO error {}", err),
-            Error::CommandParsing => {
-                write!(f, "Can't parse a command string, please check it out")
-            }
-            Error::RegexParsing => {
-                write!(f, "Can't parse a regex expression")
-            }
-            Error::ExpectTimeout => {
-                write!(f, "Reached a timeout for expect type of command")
-            }
-            Error::Eof => {
-                write!(f, "EOF was reached; the read may successed later")
-            }
-            Error::Other { message, err } => {
-                write!(f, "Unexpected error; {}; {}", message, err)
-            }
-        }
-    }
-}
-
-impl error::Error for Error {}
-
-impl From<io::Error> for Error {
-    fn from(err: io::Error) -> Self {
-        Self::IO(err)
-    }
-}
-
-impl From<Error> for io::Error {
-    fn from(err: Error) -> Self {
-        io::Error::new(io::ErrorKind::Other, err.to_string())
-    }
+    /// Error in IO operation.
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+    /// Error in conpty.
+    #[cfg(windows)]
+    #[error(transparent)]
+    Conpty(#[from] conpty::error::Error),
 }
 
 pub(crate) fn to_io_error<E: Display>(

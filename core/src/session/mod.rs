@@ -38,7 +38,7 @@ pub type OsProcessStream = OsProcStream;
 pub use session::Session;
 
 /// Session without logging.
-pub type DefaultSession = Session<DefaultLogWriter>;
+pub type DefaultSession = Session<NoopLogWriter>;
 
 /// Spawn a session with logger and timeout options.
 pub fn spawn_with_options<O: LogWriter>(
@@ -63,21 +63,21 @@ impl<O: LogWriter> Session<O> {
     }
 }
 
-impl Session<DefaultLogWriter> {
+impl Session<NoopLogWriter> {
     /// Spawns a session on a platform process.
     ///
     /// # Example
     ///
     /// ```no_run
     /// use std::process::Command;
-    /// use anticipate::{Session, DefaultLogWriter};
+    /// use anticipate::{Session, NoopLogWriter};
     ///
-    /// let p = Session::<DefaultLogWriter>::spawn(Command::new("cat"));
+    /// let p = Session::<NoopLogWriter>::spawn(Command::new("cat"));
     /// ```
     pub fn spawn(command: Command) -> Result<Self, Error> {
         let mut process = OsProcess::spawn_command(command)?;
         let stream = process.open_stream()?;
-        Ok(Self::new(process, stream, Some(DefaultLogWriter), None)?)
+        Ok(Self::new(process, stream, Some(NoopLogWriter), None)?)
     }
 }
 
@@ -99,20 +99,20 @@ impl Session<PrefixLogWriter> {
     }
 }
 
-impl Session<TeeLogWriter> {
+impl Session<StandardLogWriter> {
     /// Spawns a session on a platform process.
     ///
     /// # Example
     ///
     /// ```no_run
     /// use std::process::Command;
-    /// use anticipate::{Session, TeeLogWriter};
+    /// use anticipate::{Session, StandardLogWriter};
     ///
-    /// let p = Session::<TeeLogWriter>::spawn(Command::new("cat"));
+    /// let p = Session::<StandardLogWriter>::spawn(Command::new("cat"));
     /// ```
     pub fn spawn(command: Command) -> Result<Self, Error> {
         let mut process = OsProcess::spawn_command(command)?;
         let stream = process.open_stream()?;
-        Ok(Self::new(process, stream, Some(TeeLogWriter), None)?)
+        Ok(Self::new(process, stream, Some(StandardLogWriter), None)?)
     }
 }

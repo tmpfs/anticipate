@@ -13,8 +13,7 @@ use crate::{
     Captures,
 };
 
-/// Session represents a spawned process and its streams.
-/// It controlls process and communication with it.
+/// Session represents a spawned process and it's streams.
 #[derive(Debug)]
 pub struct Session<
     O: LogWriter,

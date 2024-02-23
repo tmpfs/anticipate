@@ -2,7 +2,7 @@
 
 use crate::{
     error::Error,
-    log::{DefaultLogWriter, LogWriter},
+    log::{NoopLogWriter, LogWriter},
     spawn, Captures, Expect, Needle, Session,
 };
 use std::ops::{Deref, DerefMut};
@@ -16,7 +16,7 @@ use std::io::{BufRead, Read, Write};
 ///
 /// It uses a custom prompt for deterministic control of the shell.
 #[cfg(unix)]
-pub fn spawn_bash() -> Result<ReplSession<DefaultLogWriter>, Error> {
+pub fn spawn_bash() -> Result<ReplSession<NoopLogWriter>, Error> {
     const DEFAULT_PROMPT: &str = "EXPECT_PROMPT";
     let mut cmd = Command::new("bash");
     let _ = cmd.env("PS1", DEFAULT_PROMPT);
@@ -50,7 +50,7 @@ pub fn spawn_bash() -> Result<ReplSession<DefaultLogWriter>, Error> {
 }
 
 /// Spawn default python's IDLE.
-pub fn spawn_python() -> Result<ReplSession<DefaultLogWriter>, Error> {
+pub fn spawn_python() -> Result<ReplSession<NoopLogWriter>, Error> {
     // todo: check windows here
     // If we spawn it as ProcAttr::default().commandline("python") it will spawn processes endlessly....
 

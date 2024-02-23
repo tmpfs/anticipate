@@ -1,7 +1,7 @@
 //! Types for writing and formatting logs to stdout.
 use std::io::Write;
 
-/// Trait for types that log output messages.
+/// Trait for types that log read and writes to a child program.
 pub trait LogWriter {
     /// Log a read from the child program.
     fn log_read(&self, writer: &mut impl Write, data: &[u8]);
@@ -9,11 +9,11 @@ pub trait LogWriter {
     fn log_write(&self, writer: &mut impl Write, data: &[u8]);
 }
 
-/// Default log writer does not log anything.
+/// Noop log writer does not log anything.
 #[derive(Debug)]
-pub struct DefaultLogWriter;
+pub struct NoopLogWriter;
 
-impl LogWriter for DefaultLogWriter {
+impl LogWriter for NoopLogWriter {
     fn log_read(&self, _writer: &mut impl Write, _data: &[u8]) {}
     fn log_write(&self, _writer: &mut impl Write, _data: &[u8]) {}
 }
@@ -49,15 +49,15 @@ impl LogWriter for PrefixLogWriter {
     }
 }
 
-/// Tee log writer does not format read and write logs.
+/// Standard log writer does not format read and write logs.
 ///
 /// Be aware that if you are writing data that would be masked,
 /// for example, entering a password at an interactive prompt
 /// the plain text value will be logged.
 #[derive(Debug)]
-pub struct TeeLogWriter;
+pub struct StandardLogWriter;
 
-impl LogWriter for TeeLogWriter {
+impl LogWriter for StandardLogWriter {
     fn log_read(&self, writer: &mut impl Write, data: &[u8]) {
         let _ = writer.write_all(data);
     }

@@ -73,6 +73,7 @@ dependencies = [
  "nix",
  "ptyprocess",
  "regex",
+ "thiserror",
 ]
 
 [[package]]
