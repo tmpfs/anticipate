@@ -2,62 +2,59 @@
 
 use std::{
     io::{self, BufRead, BufReader, Read, Write},
+    process::Command,
     time::{self, Duration},
 };
 
+use super::log::LogWriter;
 use crate::{
     error::Error,
     needle::Needle,
-    process::{Healthcheck, NonBlocking},
+    process::{Healthcheck, NonBlocking, Process},
+    session::OsProcess,
     Captures,
 };
 
 /// Session represents a spawned process and its streams.
 /// It controlls process and communication with it.
 #[derive(Debug)]
-pub struct Session<P = super::OsProcess, S = super::OsProcessStream> {
+pub struct Session<
+    O: LogWriter,
+    P = super::OsProcess,
+    S = super::OsProcessStream,
+> {
     proc: P,
     stream: TryStream<S>,
     expect_timeout: Option<Duration>,
     expect_lazy: bool,
+    logger: Option<O>,
 }
 
-impl<P, S> Session<P, S>
+impl<O, P, S> Session<O, P, S>
 where
     S: Read,
+    O: LogWriter,
 {
     /// Creates a new session.
-    pub fn new(process: P, stream: S) -> io::Result<Self> {
+    pub fn new(
+        process: P,
+        stream: S,
+        logger: Option<O>,
+        timeout: Option<Duration>,
+    ) -> io::Result<Self> {
         let stream = TryStream::new(stream)?;
+        let timeout = timeout.unwrap_or_else(|| Duration::from_millis(15000));
         Ok(Self {
             proc: process,
             stream,
-            expect_timeout: Some(Duration::from_millis(15000)),
+            expect_timeout: Some(timeout),
             expect_lazy: false,
+            logger,
         })
-    }
-
-    pub(crate) fn swap_stream<F, R>(
-        mut self,
-        new_stream: F,
-    ) -> Result<Session<P, R>, Error>
-    where
-        F: FnOnce(S) -> R,
-        R: Read,
-    {
-        self.stream.flush_in_buffer();
-        let buf = self.stream.get_available().to_owned();
-
-        let stream = self.stream.into_inner();
-        let new_stream = new_stream(stream);
-
-        let mut session = Session::new(self.proc, new_stream)?;
-        session.stream.keep_in_buffer(&buf);
-        Ok(session)
     }
 }
 
-impl<P, S> Session<P, S> {
+impl<O: LogWriter, P, S> Session<O, P, S> {
     /// Set the pty session's expect timeout.
     pub fn set_expect_timeout(&mut self, expect_timeout: Option<Duration>) {
         self.expect_timeout = expect_timeout;
@@ -93,14 +90,14 @@ impl<P, S> Session<P, S> {
     }
 }
 
-impl<P: Healthcheck, S> Session<P, S> {
+impl<O: LogWriter, P: Healthcheck, S> Session<O, P, S> {
     /// Verifies whether process is still alive.
     pub fn is_alive(&mut self) -> Result<bool, Error> {
         self.proc.is_alive().map_err(|err| err.into())
     }
 }
 
-impl<P, S: Read + NonBlocking> Session<P, S> {
+impl<O: LogWriter, P, S: Read + NonBlocking> Session<O, P, S> {
     /// Expect waits until a pattern is matched.
     ///
     /// If the method returns [Ok] it is guaranteed that at least 1 match was found.
@@ -338,7 +335,7 @@ impl<P, S: Read + NonBlocking> Session<P, S> {
     }
 }
 
-impl<Proc, Stream: Write> Session<Proc, Stream> {
+impl<O: LogWriter, Proc, Stream: Write> Session<O, Proc, Stream> {
     /// Send text to child’s STDIN.
     ///
     /// You can also use methods from [std::io::Write] instead.
@@ -384,7 +381,7 @@ impl<Proc, Stream: Write> Session<Proc, Stream> {
     }
 }
 
-impl<P, S: Read + NonBlocking> Session<P, S> {
+impl<O: LogWriter, P, S: Read + NonBlocking> Session<O, P, S> {
     /// Try to read in a non-blocking mode.
     ///
     /// Returns `[std::io::ErrorKind::WouldBlock]`
@@ -399,7 +396,7 @@ impl<P, S: Read + NonBlocking> Session<P, S> {
     }
 }
 
-impl<P, S: Write> Write for Session<P, S> {
+impl<O: LogWriter, P, S: Write> Write for Session<O, P, S> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.stream.write(buf)
     }
@@ -416,13 +413,13 @@ impl<P, S: Write> Write for Session<P, S> {
     }
 }
 
-impl<P, S: Read> Read for Session<P, S> {
+impl<O: LogWriter, P, S: Read> Read for Session<O, P, S> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         self.stream.read(buf)
     }
 }
 
-impl<P, S: Read> BufRead for Session<P, S> {
+impl<O: LogWriter, P, S: Read> BufRead for Session<O, P, S> {
     fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
         self.stream.fill_buf()
     }

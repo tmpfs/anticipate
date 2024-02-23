@@ -2,15 +2,15 @@
 
 use crate::{
     error::Error,
-    session::{pty_session::PtySession, DefaultLogSession, TeeLogSession},
-    Captures, Expect, Session,
+    session::{DefaultLogWriter, LogWriter},
+    spawn, Captures, Expect, Needle, Session,
 };
 use std::ops::{Deref, DerefMut};
 
 #[cfg(unix)]
 use std::process::Command;
 
-use crate::spawn;
+use std::io::{BufRead, Read, Write};
 
 /// Spawn a bash session.
 ///
@@ -19,7 +19,7 @@ use crate::spawn;
 /// If you wan't to use [Session::interact] method it is better to use just Session.
 /// Because we don't handle echoes here (currently). Ideally we need to.
 #[cfg(unix)]
-pub fn spawn_bash() -> Result<ReplSession, Error> {
+pub fn spawn_bash() -> Result<ReplSession<DefaultLogWriter>, Error> {
     const DEFAULT_PROMPT: &str = "EXPECT_PROMPT";
     let mut cmd = Command::new("bash");
     let _ = cmd.env("PS1", DEFAULT_PROMPT);
@@ -32,7 +32,7 @@ pub fn spawn_bash() -> Result<ReplSession, Error> {
         "PS1=EXPECT_PROMPT; unset PROMPT_COMMAND; bind 'set enable-bracketed-paste off'",
     );
 
-    let session = crate::session::Session::spawn(cmd)?;
+    let session = crate::DefaultSession::spawn(cmd)?;
 
     let mut bash = ReplSession::new(
         session,
@@ -53,7 +53,7 @@ pub fn spawn_bash() -> Result<ReplSession, Error> {
 }
 
 /// Spawn default python's IDLE.
-pub fn spawn_python() -> Result<ReplSession, Error> {
+pub fn spawn_python() -> Result<ReplSession<DefaultLogWriter>, Error> {
     // todo: check windows here
     // If we spawn it as ProcAttr::default().commandline("python") it will spawn processes endlessly....
 
@@ -105,55 +105,19 @@ pub fn spawn_powershell() -> Result<ReplSession, Error> {
 /// you have a prompt where a user inputs commands and the shell
 /// which executes them and manages IO streams.
 #[derive(Debug)]
-pub struct ReplSession {
+pub struct ReplSession<O: LogWriter> {
     /// The prompt, used for `wait_for_prompt`,
     /// e.g. ">>> " for python.
     prompt: String,
     /// A pseudo-teletype session with a spawned process.
-    session: PtySession,
+    session: Session<O>,
     /// A command which will be called before termination.
     quit_command: Option<String>,
     /// Flag to see if a echo is turned on.
     is_echo_on: bool,
 }
 
-impl ReplSession {
-    /// Creates a repl session that logs I/O.
-    ///
-    /// The argument list is:
-    ///     - session; a spawned session which repl will wrap.
-    ///     - prompt; a string which will identify that the command was run.
-    ///     - quit_command; a command which will be called when [ReplSession] instance is dropped.
-    ///     - is_echo_on; determines whether the prompt check will be done twice.
-    pub fn new_log(
-        session: DefaultLogSession,
-        prompt: String,
-        quit_command: Option<String>,
-        is_echo: bool,
-    ) -> Self {
-        Self {
-            session: PtySession::Logger(session),
-            prompt,
-            quit_command,
-            is_echo_on: is_echo,
-        }
-    }
-
-    /// Creates a repl session that logs I/O without formatting.
-    pub fn new_tee(
-        session: TeeLogSession,
-        prompt: String,
-        quit_command: Option<String>,
-        is_echo: bool,
-    ) -> Self {
-        Self {
-            session: PtySession::TeeLogger(session),
-            prompt,
-            quit_command,
-            is_echo_on: is_echo,
-        }
-    }
-
+impl<O: LogWriter> ReplSession<O> {
     /// Creates a repl session.
     ///
     /// The argument list is:
@@ -162,13 +126,13 @@ impl ReplSession {
     ///     - quit_command; a command which will be called when [ReplSession] instance is dropped.
     ///     - is_echo_on; determines whether the prompt check will be done twice.
     pub fn new(
-        session: Session,
+        session: Session<O>,
         prompt: String,
         quit_command: Option<String>,
         is_echo: bool,
     ) -> Self {
         Self {
-            session: PtySession::Default(session),
+            session,
             prompt,
             quit_command,
             is_echo_on: is_echo,
@@ -196,19 +160,19 @@ impl ReplSession {
     }
 
     /// Get an inner session.
-    pub fn into_session(self) -> PtySession {
+    pub fn into_session(self) -> Session<O> {
         self.session
     }
 }
 
-impl ReplSession {
+impl<O: LogWriter> ReplSession<O> {
     /// Block until prompt is found
     pub fn expect_prompt(&mut self) -> Result<Captures, Error> {
         self.session.expect(&self.prompt)
     }
 }
 
-impl ReplSession {
+impl<O: LogWriter> ReplSession<O> {
     /// Send a command to a repl and verifies that it exited.
     /// Returning it's output.
     pub fn execute<S: AsRef<str> + Clone>(
@@ -248,68 +212,59 @@ impl ReplSession {
     }
 }
 
-impl Deref for ReplSession {
-    type Target = PtySession;
+impl<O: LogWriter> Deref for ReplSession<O> {
+    type Target = Session<O>;
 
     fn deref(&self) -> &Self::Target {
         &self.session
     }
 }
 
-impl DerefMut for ReplSession {
+impl<O: LogWriter> DerefMut for ReplSession<O> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.session
     }
 }
 
-mod sync {
-    use super::ReplSession;
-    use crate::{Captures, Error, Expect, Needle};
-    use std::io::{BufRead, Read, Result, Write};
-
-    impl Expect for ReplSession {
-        fn send<B: AsRef<[u8]>>(&mut self, buf: B) -> Result<()> {
-            self.session.send(buf)
-        }
-
-        fn send_line(&mut self, text: &str) -> Result<()> {
-            self.session.send_line(text)
-        }
-
-        fn expect<N>(
-            &mut self,
-            needle: N,
-        ) -> std::result::Result<Captures, Error>
-        where
-            N: Needle,
-        {
-            self.session.expect(needle)
-        }
+impl<O: LogWriter> Expect for ReplSession<O> {
+    fn send<B: AsRef<[u8]>>(&mut self, buf: B) -> std::io::Result<()> {
+        self.session.send(buf)
     }
 
-    impl Write for ReplSession {
-        fn write(&mut self, buf: &[u8]) -> Result<usize> {
-            self.session.write(buf)
-        }
-
-        fn flush(&mut self) -> Result<()> {
-            self.session.flush()
-        }
+    fn send_line(&mut self, text: &str) -> std::io::Result<()> {
+        self.session.send_line(text)
     }
 
-    impl BufRead for ReplSession {
-        fn fill_buf(&mut self) -> Result<&[u8]> {
-            self.session.fill_buf()
-        }
+    fn expect<N>(&mut self, needle: N) -> std::result::Result<Captures, Error>
+    where
+        N: Needle,
+    {
+        self.session.expect(needle)
+    }
+}
 
-        fn consume(&mut self, amt: usize) {
-            self.session.consume(amt)
-        }
+impl<O: LogWriter> Write for ReplSession<O> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.session.write(buf)
     }
 
-    impl Read for ReplSession {
-        fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-            self.session.read(buf)
-        }
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.session.flush()
+    }
+}
+
+impl<O: LogWriter> BufRead for ReplSession<O> {
+    fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
+        self.session.fill_buf()
+    }
+
+    fn consume(&mut self, amt: usize) {
+        self.session.consume(amt)
+    }
+}
+
+impl<O: LogWriter> Read for ReplSession<O> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.session.read(buf)
     }
 }

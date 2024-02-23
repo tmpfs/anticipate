@@ -76,37 +76,17 @@ pub use needle::{Any, Eof, NBytes, Needle, Regex};
 #[cfg(unix)]
 pub use ptyprocess::{Signal, WaitStatus};
 
-pub use session::Session;
-
-/// Spawn spawnes a new session.
-///
-/// It accepts a command and possibly arguments just as string.
-/// It doesn't parses ENV variables. For complex constrictions use [`Session::spawn`].
-///
-/// # Example
-///
-/// ```no_run,ignore
-/// use std::{thread, time::Duration, io::{Read, Write}};
-/// use anticipate::{spawn, ControlCode};
-///
-/// let mut p = spawn("cat").unwrap();
-/// p.send_line("Hello World").unwrap();
-///
-/// thread::sleep(Duration::from_millis(300)); // give 'cat' some time to set up
-/// p.send(ControlCode::EndOfText).unwrap(); // abort: SIGINT
-///
-/// let mut buf = String::new();
-/// p.read_to_string(&mut buf).unwrap();
-///
-/// assert_eq!(buf, "Hello World\r\n");
-/// ```
-///
-/// [`Session::spawn`]: ./struct.Session.html?#spawn
-pub fn spawn<S: AsRef<str>>(cmd: S) -> Result<Session, Error> {
-    Session::spawn_cmd(cmd.as_ref())
-}
+pub use session::{
+    DefaultLogWriter, DefaultSession, PrefixLogSession, PrefixLogWriter,
+    Session, TeeLogSession, TeeLogWriter,
+};
 
 use std::io::{BufRead, Read, Write};
+
+/// Spawn a command.
+pub fn spawn<S: AsRef<str>>(cmd: S) -> Result<DefaultSession, Error> {
+    DefaultSession::spawn_cmd(cmd.as_ref())
+}
 
 /// Trait for types that can read and write to child programs.
 pub trait Expect: Write + Read + BufRead {

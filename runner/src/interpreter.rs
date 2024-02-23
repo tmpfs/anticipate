@@ -3,13 +3,15 @@ use crate::{
 };
 use anticipate::{
     repl::ReplSession,
-    session::{log, tee, Session},
-    ControlCode, Expect, Regex,
+    session::{DefaultLogWriter, LogWriter},
+    ControlCode, DefaultSession, Expect, PrefixLogSession, Regex,
+    TeeLogSession,
 };
 use ouroboros::self_referencing;
 use probability::prelude::*;
 use std::io::{BufRead, Write};
 use std::{
+    borrow::Cow,
     path::{Path, PathBuf},
     thread::sleep,
     time::Duration,
@@ -271,165 +273,39 @@ impl ScriptFile {
         };
 
         tracing::info!(exec = %exec_cmd, "run");
-        let mut p = session(
-            &exec_cmd,
-            options.timeout,
-            prompt,
-            options.echo,
-            options.format,
-        )?;
 
-        if options.cinema.is_some() {
-            p.expect_prompt()?;
-            // Wait for the initial shell prompt to flush
-            sleep(Duration::from_millis(50));
-            tracing::debug!("ready");
-        }
-
-        fn type_text(
-            pty: &mut ReplSession,
-            text: &str,
-            cinema: &CinemaOptions,
-        ) -> Result<()> {
-            for c in UnicodeSegmentation::graphemes(text, true) {
-                pty.send(c)?;
-                pty.flush()?;
-
-                let mut source = Source(rand::rngs::OsRng);
-                let gaussian = Gaussian::new(0.0, cinema.deviation);
-                let drift = gaussian.sample(&mut source);
-
-                let delay = if (drift as u64) < cinema.delay {
-                    let drift = drift as i64;
-                    if drift < 0 {
-                        cinema.delay - drift.unsigned_abs()
-                    } else {
-                        cinema.delay + drift as u64
-                    }
-                } else {
-                    cinema.delay + drift.abs() as u64
-                };
-
-                sleep(Duration::from_millis(delay));
-            }
-
-            pty.send("\n")?;
-            pty.flush()?;
-
-            Ok(())
-        }
-
-        fn exec(
-            p: &mut ReplSession,
-            instructions: &[Instruction<'_>],
-            options: &InterpreterOptions,
-            pragma: Option<&str>,
-        ) -> Result<()> {
-            for cmd in instructions.iter() {
-                tracing::debug!(instruction = ?cmd);
-                match cmd {
-                    Instruction::Pragma(_) => {
-                        if let (Some(cinema), Some(cmd)) =
-                            (&options.cinema, &pragma)
-                        {
-                            if cinema.type_pragma {
-                                type_text(p, cmd, cinema)?;
-                            } else {
-                                p.send_line(cmd)?;
-                            }
-                        }
-                    }
-                    Instruction::Sleep(delay) => {
-                        sleep(Duration::from_millis(*delay));
-                    }
-                    Instruction::Send(line) => {
-                        p.send(line)?;
-                    }
-                    Instruction::Comment(line)
-                    | Instruction::SendLine(line) => {
-                        if let (false, Instruction::Comment(_)) =
-                            (options.print_comments, cmd)
-                        {
-                            continue;
-                        }
-
-                        let line = ScriptParser::interpolate(line)?;
-                        if let Some(cinema) = &options.cinema {
-                            type_text(p, line.as_ref(), cinema)?;
-                        } else {
-                            p.send_line(line.as_ref())?;
-                        }
-                    }
-                    Instruction::SendControl(ctrl) => {
-                        let ctrl =
-                            ControlCode::try_from(*ctrl).map_err(|_| {
-                                Error::InvalidControlCode(ctrl.to_string())
-                            })?;
-                        p.send(ctrl)?;
-                    }
-                    Instruction::Expect(line) => {
-                        p.expect(line)?;
-                    }
-                    Instruction::Regex(line) => {
-                        p.expect(Regex(line))?;
-                    }
-                    Instruction::ReadLine => {
-                        let mut line = String::new();
-                        p.read_line(&mut line)?;
-                    }
-                    Instruction::Wait => {
-                        p.expect_prompt()?;
-                    }
-                    Instruction::Clear => {
-                        p.send_line("clear")?;
-                    }
-                    Instruction::Flush => {
-                        p.flush()?;
-                    }
-                    Instruction::Include(source) => {
-                        exec(
-                            p,
-                            source.borrow_instructions(),
-                            options,
-                            pragma,
-                        )?;
-                    }
-                }
-
-                sleep(Duration::from_millis(15));
-            }
-            Ok(())
-        }
-
-        exec(
-            &mut p,
-            instructions,
-            &options,
-            pragma.as_ref().map(|i| i.as_ref()),
-        )?;
-
-        if options.cinema.is_some() {
-            tracing::debug!("exit");
-            p.send(ControlCode::EndOfTransmission)?;
-        } else {
-            tracing::debug!("eof");
-            // If it's not a shell, ie: has a pragma command
-            // which is a script this will fail with I/O error
-            // but we can safely ignore it
-            let _ = p.send(ControlCode::EndOfTransmission);
+        if !options.echo && !options.format {
+            default_session(
+                &exec_cmd,
+                options.timeout,
+                prompt,
+                options,
+                pragma,
+                instructions,
+            )?;
+        } else if options.echo && !options.format {
+            tee_session(
+                &exec_cmd,
+                options.timeout,
+                prompt,
+                options,
+                pragma,
+                instructions,
+            )?;
         }
 
         Ok(())
     }
 }
 
-fn session(
+fn default_session(
     cmd: &str,
     _timeout: Option<u64>,
     prompt: String,
-    echo: bool,
-    format: bool,
-) -> Result<ReplSession> {
+    options: InterpreterOptions,
+    pragma: Option<Cow<'_, str>>,
+    instructions: &[Instruction<'_>],
+) -> Result<()> {
     use std::process::Command;
     let mut parts = comma::parse_command(cmd)
         .ok_or(Error::BadArguments(cmd.to_owned()))?;
@@ -437,22 +313,186 @@ fn session(
     let mut command = Command::new(prog);
     command.args(parts);
 
-    let pty = Session::spawn(command)?;
-    if echo && format {
-        Ok(ReplSession::new_log(
-            log(pty, std::io::stdout())?,
-            prompt,
-            None,
-            false,
-        ))
-    } else if echo && !format {
-        Ok(ReplSession::new_tee(
-            tee(pty, std::io::stdout())?,
-            prompt,
-            None,
-            false,
-        ))
-    } else {
-        Ok(ReplSession::new(pty, prompt, None, false))
+    let pty = DefaultSession::spawn(command)?;
+    let mut p = ReplSession::new(pty, prompt, None, false);
+
+    if options.cinema.is_some() {
+        p.expect_prompt()?;
+        // Wait for the initial shell prompt to flush
+        sleep(Duration::from_millis(50));
+        tracing::debug!("ready");
     }
+
+    exec(
+        &mut p,
+        instructions,
+        &options,
+        pragma.as_ref().map(|i| i.as_ref()),
+    )?;
+
+    if options.cinema.is_some() {
+        tracing::debug!("exit");
+        p.send(ControlCode::EndOfTransmission)?;
+    } else {
+        tracing::debug!("eof");
+        // If it's not a shell, ie: has a pragma command
+        // which is a script this will fail with I/O error
+        // but we can safely ignore it
+        let _ = p.send(ControlCode::EndOfTransmission);
+    }
+
+    Ok(())
+}
+
+fn tee_session(
+    cmd: &str,
+    _timeout: Option<u64>,
+    prompt: String,
+    options: InterpreterOptions,
+    pragma: Option<Cow<'_, str>>,
+    instructions: &[Instruction<'_>],
+) -> Result<()> {
+    use std::process::Command;
+    let mut parts = comma::parse_command(cmd)
+        .ok_or(Error::BadArguments(cmd.to_owned()))?;
+    let prog = parts.remove(0);
+    let mut command = Command::new(prog);
+    command.args(parts);
+
+    let pty = TeeLogSession::spawn(command)?;
+    let mut p = ReplSession::new(pty, prompt, None, false);
+
+    if options.cinema.is_some() {
+        p.expect_prompt()?;
+        // Wait for the initial shell prompt to flush
+        sleep(Duration::from_millis(50));
+        tracing::debug!("ready");
+    }
+
+    exec(
+        &mut p,
+        instructions,
+        &options,
+        pragma.as_ref().map(|i| i.as_ref()),
+    )?;
+
+    if options.cinema.is_some() {
+        tracing::debug!("exit");
+        p.send(ControlCode::EndOfTransmission)?;
+    } else {
+        tracing::debug!("eof");
+        // If it's not a shell, ie: has a pragma command
+        // which is a script this will fail with I/O error
+        // but we can safely ignore it
+        let _ = p.send(ControlCode::EndOfTransmission);
+    }
+
+    Ok(())
+}
+
+fn type_text<O: LogWriter>(
+    pty: &mut ReplSession<O>,
+    text: &str,
+    cinema: &CinemaOptions,
+) -> Result<()> {
+    for c in UnicodeSegmentation::graphemes(text, true) {
+        pty.send(c)?;
+        pty.flush()?;
+
+        let mut source = Source(rand::rngs::OsRng);
+        let gaussian = Gaussian::new(0.0, cinema.deviation);
+        let drift = gaussian.sample(&mut source);
+
+        let delay = if (drift as u64) < cinema.delay {
+            let drift = drift as i64;
+            if drift < 0 {
+                cinema.delay - drift.unsigned_abs()
+            } else {
+                cinema.delay + drift as u64
+            }
+        } else {
+            cinema.delay + drift.abs() as u64
+        };
+
+        sleep(Duration::from_millis(delay));
+    }
+
+    pty.send("\n")?;
+    pty.flush()?;
+
+    Ok(())
+}
+
+fn exec<O: LogWriter>(
+    p: &mut ReplSession<O>,
+    instructions: &[Instruction<'_>],
+    options: &InterpreterOptions,
+    pragma: Option<&str>,
+) -> Result<()> {
+    for cmd in instructions.iter() {
+        tracing::debug!(instruction = ?cmd);
+        match cmd {
+            Instruction::Pragma(_) => {
+                if let (Some(cinema), Some(cmd)) = (&options.cinema, &pragma)
+                {
+                    if cinema.type_pragma {
+                        type_text(p, cmd, cinema)?;
+                    } else {
+                        p.send_line(cmd)?;
+                    }
+                }
+            }
+            Instruction::Sleep(delay) => {
+                sleep(Duration::from_millis(*delay));
+            }
+            Instruction::Send(line) => {
+                p.send(line)?;
+            }
+            Instruction::Comment(line) | Instruction::SendLine(line) => {
+                if let (false, Instruction::Comment(_)) =
+                    (options.print_comments, cmd)
+                {
+                    continue;
+                }
+
+                let line = ScriptParser::interpolate(line)?;
+                if let Some(cinema) = &options.cinema {
+                    type_text(p, line.as_ref(), cinema)?;
+                } else {
+                    p.send_line(line.as_ref())?;
+                }
+            }
+            Instruction::SendControl(ctrl) => {
+                let ctrl = ControlCode::try_from(*ctrl).map_err(|_| {
+                    Error::InvalidControlCode(ctrl.to_string())
+                })?;
+                p.send(ctrl)?;
+            }
+            Instruction::Expect(line) => {
+                p.expect(line)?;
+            }
+            Instruction::Regex(line) => {
+                p.expect(Regex(line))?;
+            }
+            Instruction::ReadLine => {
+                let mut line = String::new();
+                p.read_line(&mut line)?;
+            }
+            Instruction::Wait => {
+                p.expect_prompt()?;
+            }
+            Instruction::Clear => {
+                p.send_line("clear")?;
+            }
+            Instruction::Flush => {
+                p.flush()?;
+            }
+            Instruction::Include(source) => {
+                exec(p, source.borrow_instructions(), options, pragma)?;
+            }
+        }
+
+        sleep(Duration::from_millis(15));
+    }
+    Ok(())
 }

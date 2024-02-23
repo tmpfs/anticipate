@@ -1,4 +1,4 @@
-use anticipate::{Captures, ControlCode, Needle, Session};
+use anticipate::{Captures, ControlCode, DefaultSession, Needle};
 use std::{process::Command, thread, time::Duration};
 
 #[cfg(unix)]
@@ -9,7 +9,7 @@ use std::io::{BufRead, Read, Write};
 #[test]
 #[cfg(unix)]
 fn send_controll() {
-    let mut proc = Session::spawn(Command::new("cat")).unwrap();
+    let mut proc = DefaultSession::spawn(Command::new("cat")).unwrap();
     _p_send_control(&mut proc, ControlCode::EOT).unwrap();
     assert_eq!(
         proc.get_process().wait().unwrap(),
@@ -21,7 +21,8 @@ fn send_controll() {
 #[cfg(windows)]
 fn send_controll() {
     let mut proc =
-        Session::spawn(Command::new("powershell -C ping localhost")).unwrap();
+        DefaultSession::spawn(Command::new("powershell -C ping localhost"))
+            .unwrap();
 
     // give powershell a bit time
     thread::sleep(Duration::from_millis(100));
@@ -36,7 +37,7 @@ fn send_controll() {
 #[test]
 #[cfg(unix)]
 fn send() {
-    let mut proc = Session::spawn(Command::new("cat")).unwrap();
+    let mut proc = DefaultSession::spawn(Command::new("cat")).unwrap();
     _p_send(&mut proc, "hello cat\n").unwrap();
 
     // give cat a time to react on input
@@ -52,9 +53,10 @@ fn send() {
 #[test]
 #[cfg(windows)]
 fn send() {
-    let mut proc =
-        Session::spawn(Command::new("python ./tests/actions/cat/main.py"))
-            .unwrap();
+    let mut proc = DefaultSession::spawn(Command::new(
+        "python ./tests/actions/cat/main.py",
+    ))
+    .unwrap();
     _p_send(&mut proc, "hello cat\r\n").unwrap();
     _p_expect(&mut proc, "hello cat").unwrap();
     proc.get_process_mut().exit(0).unwrap();
@@ -63,7 +65,7 @@ fn send() {
 #[test]
 #[cfg(unix)]
 fn send_line() {
-    let mut proc = Session::spawn(Command::new("cat")).unwrap();
+    let mut proc = DefaultSession::spawn(Command::new("cat")).unwrap();
 
     _p_send_line(&mut proc, "hello cat").unwrap();
 
@@ -80,9 +82,10 @@ fn send_line() {
 #[test]
 #[cfg(windows)]
 fn send_line() {
-    let mut proc =
-        Session::spawn(Command::new("python ./tests/actions/cat/main.py"))
-            .unwrap();
+    let mut proc = DefaultSession::spawn(Command::new(
+        "python ./tests/actions/cat/main.py",
+    ))
+    .unwrap();
     _p_send_line(&mut proc, "hello cat").unwrap();
     _p_expect(&mut proc, "hello cat").unwrap();
     proc.get_process_mut().exit(0).unwrap();
@@ -91,7 +94,7 @@ fn send_line() {
 #[test]
 #[cfg(unix)]
 fn try_read_by_byte() {
-    let mut proc = Session::spawn(Command::new("cat")).unwrap();
+    let mut proc = DefaultSession::spawn(Command::new("cat")).unwrap();
 
     assert_eq!(
         _p_try_read(&mut proc, &mut [0; 1]).unwrap_err().kind(),
@@ -126,7 +129,7 @@ fn try_read_by_byte() {
     // it shows that on windows ECHO is turned on.
     // Mustn't it be turned down?
 
-    let mut proc = Session::spawn(Command::new("powershell")).unwrap();
+    let mut proc = DefaultSession::spawn(Command::new("powershell")).unwrap();
     _p_send_line(
         &mut proc,
         "while (1) { read-host | set r; if (!$r) { break }}",
@@ -155,7 +158,7 @@ fn try_read_by_byte() {
 #[test]
 #[cfg(unix)]
 fn blocking_read_after_non_blocking() {
-    let mut proc = Session::spawn(Command::new("cat")).unwrap();
+    let mut proc = DefaultSession::spawn(Command::new("cat")).unwrap();
 
     assert!(_p_is_empty(&mut proc).unwrap());
 
@@ -185,7 +188,7 @@ fn blocking_read_after_non_blocking() {
 #[test]
 #[cfg(windows)]
 fn blocking_read_after_non_blocking() {
-    let mut proc = Session::spawn(Command::new("powershell")).unwrap();
+    let mut proc = DefaultSession::spawn(Command::new("powershell")).unwrap();
     _p_send_line(
         &mut proc,
         "while (1) { read-host | set r; if (!$r) { break }}",
@@ -214,7 +217,7 @@ fn blocking_read_after_non_blocking() {
 #[test]
 #[cfg(unix)]
 fn try_read() {
-    let mut proc = Session::spawn(Command::new("cat")).unwrap();
+    let mut proc = DefaultSession::spawn(Command::new("cat")).unwrap();
 
     let mut buf = vec![0; 128];
     assert_eq!(
@@ -238,7 +241,7 @@ fn try_read() {
 #[test]
 #[cfg(windows)]
 fn try_read() {
-    let mut proc = Session::spawn(Command::new("powershell")).unwrap();
+    let mut proc = DefaultSession::spawn(Command::new("powershell")).unwrap();
     thread::sleep(Duration::from_millis(300));
     _p_send_line(
         &mut proc,
@@ -274,7 +277,7 @@ fn try_read() {
 #[test]
 #[cfg(unix)]
 fn blocking_read_after_non_blocking_try_read() {
-    let mut proc = Session::spawn(Command::new("cat")).unwrap();
+    let mut proc = DefaultSession::spawn(Command::new("cat")).unwrap();
 
     let mut buf = vec![0; 1];
     assert_eq!(
@@ -307,7 +310,7 @@ fn blocking_read_after_non_blocking_try_read() {
 #[cfg(unix)]
 #[test]
 fn try_read_after_eof() {
-    let mut proc = Session::spawn(Command::new("cat")).unwrap();
+    let mut proc = DefaultSession::spawn(Command::new("cat")).unwrap();
 
     _p_send_line(&mut proc, "hello").unwrap();
 
@@ -328,7 +331,7 @@ fn try_read_after_eof() {
 fn try_read_after_process_exit() {
     let mut command = Command::new("echo");
     command.arg("hello cat");
-    let mut proc = Session::spawn(command).unwrap();
+    let mut proc = DefaultSession::spawn(command).unwrap();
 
     assert_eq!(
         proc.get_process().wait().unwrap(),
@@ -360,7 +363,7 @@ fn try_read_after_process_exit() {
     use std::io::ErrorKind;
 
     let mut proc =
-        Session::spawn(Command::new("cmd /C echo hello cat")).unwrap();
+        DefaultSession::spawn(Command::new("cmd /C echo hello cat")).unwrap();
 
     assert_eq!(proc.get_process().wait(None).unwrap(), 0);
 
@@ -396,7 +399,7 @@ fn try_read_after_process_exit() {
 fn try_read_to_end() {
     let mut cmd = Command::new("echo");
     cmd.arg("Hello World");
-    let mut proc = Session::spawn(cmd).unwrap();
+    let mut proc = DefaultSession::spawn(cmd).unwrap();
 
     let mut buf: Vec<u8> = Vec::new();
     loop {
@@ -415,7 +418,7 @@ fn try_read_to_end() {
 #[test]
 #[cfg(windows)]
 fn try_read_to_end() {
-    let mut proc = Session::spawn(Command::new(
+    let mut proc = DefaultSession::spawn(Command::new(
         "python ./tests/actions/echo/main.py Hello World",
     ))
     .unwrap();
@@ -438,7 +441,7 @@ fn try_read_to_end() {
 #[cfg(windows)]
 fn continues_try_reads() {
     let cmd = Command::new("python3 -c \"import time; print('Start Sleep'); time.sleep(0.1); print('End of Sleep'); yn=input('input');\"");
-    let mut proc = Session::spawn(cmd).unwrap();
+    let mut proc = DefaultSession::spawn(cmd).unwrap();
 
     let mut buf = [0; 128];
     loop {
@@ -462,11 +465,11 @@ fn continues_try_reads() {
 #[cfg(not(target_os = "macos"))]
 #[cfg(not(windows))]
 fn automatic_stop_of_interact_on_eof() {
-    let mut p = Session::spawn(Command::new("ls")).unwrap();
+    let mut p = DefaultSession::spawn(Command::new("ls")).unwrap();
     _p_interact(&mut p).unwrap();
 
     // check that second spawn works
-    let mut p = Session::spawn(Command::new("ls")).unwrap();
+    let mut p = DefaultSession::spawn(Command::new("ls")).unwrap();
     _p_interact(&mut p).unwrap();
 }
 
@@ -474,10 +477,10 @@ fn automatic_stop_of_interact_on_eof() {
 #[cfg(not(target_os = "macos"))]
 #[cfg(not(windows))]
 fn spawn_after_interact() {
-    let mut p = Session::spawn(Command::new("ls")).unwrap();
+    let mut p = DefaultSession::spawn(Command::new("ls")).unwrap();
     _p_interact(&mut p).unwrap();
 
-    let p = Session::spawn(Command::new("ls")).unwrap();
+    let p = DefaultSession::spawn(Command::new("ls")).unwrap();
     assert!(matches!(
         p.get_process().wait().unwrap(),
         WaitStatus::Exited(_, 0)
@@ -487,7 +490,7 @@ fn spawn_after_interact() {
 #[test]
 #[cfg(unix)]
 fn read_line_test() {
-    let mut proc = Session::spawn(Command::new("cat")).unwrap();
+    let mut proc = DefaultSession::spawn(Command::new("cat")).unwrap();
 
     // give cat a time to react on input
     thread::sleep(Duration::from_millis(100));
@@ -502,70 +505,82 @@ fn read_line_test() {
     proc.get_process_mut().exit(true).unwrap();
 }
 
-fn _p_read(proc: &mut Session, buf: &mut [u8]) -> std::io::Result<usize> {
+fn _p_read(
+    proc: &mut DefaultSession,
+    buf: &mut [u8],
+) -> std::io::Result<usize> {
     proc.read(buf)
 }
 
-fn _p_write_all(proc: &mut Session, buf: &[u8]) -> std::io::Result<()> {
+fn _p_write_all(
+    proc: &mut DefaultSession,
+    buf: &[u8],
+) -> std::io::Result<()> {
     proc.write_all(buf)
 }
 
-fn _p_flush(proc: &mut Session) -> std::io::Result<()> {
+fn _p_flush(proc: &mut DefaultSession) -> std::io::Result<()> {
     proc.flush()
 }
 
-fn _p_send(proc: &mut Session, buf: &str) -> std::io::Result<()> {
+fn _p_send(proc: &mut DefaultSession, buf: &str) -> std::io::Result<()> {
     proc.send(buf)
 }
 
 fn _p_expect(
-    proc: &mut Session,
+    proc: &mut DefaultSession,
     n: impl Needle,
 ) -> Result<Captures, anticipate::Error> {
     proc.expect(n)
 }
 
-fn _p_send_line(proc: &mut Session, buf: &str) -> std::io::Result<()> {
+fn _p_send_line(proc: &mut DefaultSession, buf: &str) -> std::io::Result<()> {
     proc.send_line(buf)
 }
 
 fn _p_send_control(
-    proc: &mut Session,
+    proc: &mut DefaultSession,
     buf: impl Into<ControlCode>,
 ) -> std::io::Result<()> {
     proc.send(buf.into())
 }
 
-fn _p_read_to_string(proc: &mut Session) -> std::io::Result<String> {
+fn _p_read_to_string(proc: &mut DefaultSession) -> std::io::Result<String> {
     let mut buf = String::new();
     proc.read_to_string(&mut buf)?;
     Ok(buf)
 }
 
-fn _p_read_to_end(proc: &mut Session) -> std::io::Result<Vec<u8>> {
+fn _p_read_to_end(proc: &mut DefaultSession) -> std::io::Result<Vec<u8>> {
     let mut buf = Vec::new();
     proc.read_to_end(&mut buf)?;
     Ok(buf)
 }
 
-fn _p_read_until(proc: &mut Session, ch: u8) -> std::io::Result<Vec<u8>> {
+fn _p_read_until(
+    proc: &mut DefaultSession,
+    ch: u8,
+) -> std::io::Result<Vec<u8>> {
     let mut buf = Vec::new();
     let n = proc.read_until(ch, &mut buf)?;
     buf = buf[..n].to_vec();
     Ok(buf)
 }
 
-fn _p_read_line(proc: &mut Session) -> std::io::Result<String> {
+fn _p_read_line(proc: &mut DefaultSession) -> std::io::Result<String> {
     let mut buf = String::new();
     proc.read_line(&mut buf)?;
     Ok(buf)
 }
 
-fn _p_is_empty(proc: &mut Session) -> std::io::Result<bool> {
+fn _p_is_empty(proc: &mut DefaultSession) -> std::io::Result<bool> {
     proc.is_empty()
 }
 
-fn _p_try_read(proc: &mut Session, buf: &mut [u8]) -> std::io::Result<usize> {
+fn _p_try_read(
+    proc: &mut DefaultSession,
+    buf: &mut [u8],
+) -> std::io::Result<usize> {
     proc.try_read(buf)
 }
 

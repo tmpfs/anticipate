@@ -15,17 +15,12 @@
 //! p.read_line(&mut line).unwrap();
 //! ```
 
-#[doc(hidden)]
-pub mod pty_session;
-mod session;
 mod log;
+mod session;
 
 use std::{io::Write, process::Command};
 
-use crate::{
-    process::Process,
-    Error,
-};
+use crate::{process::Process, Error};
 
 use std::io::Read;
 
@@ -39,50 +34,83 @@ type OsProcStream = crate::process::unix::PtyStream;
 #[cfg(windows)]
 type OsProcStream = crate::process::windows::ProcessStream;
 
-/// Session that is logged using the default writer.
-pub type DefaultLogSession = Session<
-    OsProc,
-    LogStream<OsProcStream, std::io::Stdout, DefaultLogWriter>,
->;
-
-/// Session that is logged using the tee writer.
-pub type TeeLogSession =
-    Session<OsProc, LogStream<OsProcStream, std::io::Stdout, TeeLogWriter>>;
-
 /// A type alias for OS process which can run a [`Session`] and a default one.
 pub type OsProcess = OsProc;
 /// A type alias for OS process stream which is a default one for [`Session`].
 pub type OsProcessStream = OsProcStream;
 
-pub use session::Session;
 pub use log::*;
+pub use session::Session;
 
-impl Session {
+pub type DefaultSession = Session<DefaultLogWriter>;
+pub type PrefixLogSession = Session<PrefixLogWriter>;
+pub type TeeLogSession = Session<TeeLogWriter>;
+
+impl<O: LogWriter> Session<O> {
+    /// Spawns a session on a platform process.
+    /// Using a string commandline.
+    pub(crate) fn spawn_cmd(cmd: &str) -> Result<Self, Error> {
+        let mut process = OsProcess::spawn(cmd)?;
+        let stream = process.open_stream()?;
+        Ok(Self::new(process, stream, None, None)?)
+    }
+}
+
+impl Session<DefaultLogWriter> {
     /// Spawns a session on a platform process.
     ///
     /// # Example
     ///
     /// ```no_run
     /// use std::process::Command;
-    /// use anticipate::Session;
+    /// use anticipate::{Session, DefaultLogWriter};
     ///
-    /// let p = Session::spawn(Command::new("cat"));
+    /// let p = Session::<DefaultLogWriter>::spawn(Command::new("cat"));
     /// ```
     pub fn spawn(command: Command) -> Result<Self, Error> {
         let mut process = OsProcess::spawn_command(command)?;
         let stream = process.open_stream()?;
-        Ok(Self::new(process, stream)?)
-    }
-
-    /// Spawns a session on a platform process.
-    /// Using a string commandline.
-    pub(crate) fn spawn_cmd(cmd: &str) -> Result<Self, Error> {
-        let mut process = OsProcess::spawn(cmd)?;
-        let stream = process.open_stream()?;
-        Ok(Self::new(process, stream)?)
+        Ok(Self::new(process, stream, Some(DefaultLogWriter), None)?)
     }
 }
 
+impl Session<PrefixLogWriter> {
+    /// Spawns a session on a platform process.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use std::process::Command;
+    /// use anticipate::{Session, PrefixLogWriter};
+    ///
+    /// let p = Session::<PrefixLogWriter>::spawn(Command::new("cat"));
+    /// ```
+    pub fn spawn(command: Command) -> Result<Self, Error> {
+        let mut process = OsProcess::spawn_command(command)?;
+        let stream = process.open_stream()?;
+        Ok(Self::new(process, stream, Some(PrefixLogWriter), None)?)
+    }
+}
+
+impl Session<TeeLogWriter> {
+    /// Spawns a session on a platform process.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use std::process::Command;
+    /// use anticipate::{Session, TeeLogWriter};
+    ///
+    /// let p = Session::<TeeLogWriter>::spawn(Command::new("cat"));
+    /// ```
+    pub fn spawn(command: Command) -> Result<Self, Error> {
+        let mut process = OsProcess::spawn_command(command)?;
+        let stream = process.open_stream()?;
+        Ok(Self::new(process, stream, Some(TeeLogWriter), None)?)
+    }
+}
+
+/*
 /// Set a logger which formats and prefixes the IO.
 ///
 /// Be aware that if you are writing data that would be masked,
@@ -123,3 +151,4 @@ where
 {
     session.swap_stream(|s| LogStream::new(s, dst, TeeLogWriter))
 }
+*/
