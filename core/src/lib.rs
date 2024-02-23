@@ -30,7 +30,6 @@
 //! ## Feature flags
 //!
 //! - `async`: Enables a async/await public API.
-//! - `polling`: Enables polling backend in interact session. Be cautious to use it on windows.
 //!
 //! ## Examples
 //!
@@ -115,9 +114,6 @@ mod check_macros;
 mod control_code;
 mod error;
 mod needle;
-
-#[cfg(all(windows, feature = "polling"))]
-mod waiter;
 
 //pub mod interact;
 pub mod process;

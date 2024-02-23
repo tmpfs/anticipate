@@ -11,7 +11,6 @@ categories = ["development-tools::testing", "os::unix-apis", "os::windows-apis"]
 keywords = ["expect", "pty", "testing", "terminal", "automation"]
 
 [features]
-polling = ["dep:polling", "dep:crossbeam-channel"]
 async = ["futures-lite", "futures-timer", "async-io", "blocking", "async-trait"]
 
 [dependencies]
@@ -24,12 +23,10 @@ async-trait = { version = "0.1", optional = true }
 ptyprocess = "0.4.1"
 nix = "0.26"
 async-io = { version = "1.9.0", optional = true }
-polling = { version = "2.3.0", optional = true }
 
 [target.'cfg(windows)'.dependencies]
 conpty = "0.5.0"
 blocking = { version = "1.2.0", optional = true }
-crossbeam-channel = { version = "0.5.6", optional = true }
 
 [package.metadata.docs.rs]
 all-features = false

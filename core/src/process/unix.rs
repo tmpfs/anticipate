@@ -188,13 +188,6 @@ impl AsyncRead for AsyncPtyStream {
     }
 }
 
-#[cfg(feature = "polling")]
-impl polling::Source for PtyStream {
-    fn raw(&self) -> RawFd {
-        self.as_raw_fd()
-    }
-}
-
 pub(crate) fn make_non_blocking(fd: RawFd, blocking: bool) -> Result<()> {
     use nix::fcntl::{fcntl, FcntlArg, OFlag};
 
