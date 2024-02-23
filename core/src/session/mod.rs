@@ -17,7 +17,7 @@
 
 #[doc(hidden)]
 pub mod pty_session;
-mod sync_session;
+mod session;
 
 use std::{io::Write, process::Command};
 
@@ -54,7 +54,7 @@ pub type OsProcess = OsProc;
 /// A type alias for OS process stream which is a default one for [`Session`].
 pub type OsProcessStream = OsProcStream;
 
-pub use sync_session::Session;
+pub use session::Session;
 
 impl Session {
     /// Spawns a session on a platform process.
