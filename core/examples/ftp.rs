@@ -1,6 +1,5 @@
 use anticipate::{spawn, ControlCode, Error, Regex};
 
-#[cfg(not(feature = "async"))]
 fn main() -> Result<(), Error> {
     let mut p = spawn("ftp bks4-speedtest-1.tele2.net")?;
     p.expect(Regex("Name \\(.*\\):"))?;
@@ -17,5 +16,3 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
-#[cfg(feature = "async")]
-fn main() {}
