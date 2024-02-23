@@ -70,7 +70,7 @@ impl Session<NoopLogWriter> {
     ///
     /// ```no_run
     /// use std::process::Command;
-    /// use anticipate::{Session, NoopLogWriter};
+    /// use anticipate::{Session, log::NoopLogWriter};
     ///
     /// let p = Session::<NoopLogWriter>::spawn(Command::new("cat"));
     /// ```
@@ -88,7 +88,7 @@ impl Session<PrefixLogWriter> {
     ///
     /// ```no_run
     /// use std::process::Command;
-    /// use anticipate::{Session, PrefixLogWriter};
+    /// use anticipate::{Session, log::PrefixLogWriter};
     ///
     /// let p = Session::<PrefixLogWriter>::spawn(Command::new("cat"));
     /// ```
@@ -106,7 +106,7 @@ impl Session<StandardLogWriter> {
     ///
     /// ```no_run
     /// use std::process::Command;
-    /// use anticipate::{Session, StandardLogWriter};
+    /// use anticipate::{Session, log::StandardLogWriter};
     ///
     /// let p = Session::<StandardLogWriter>::spawn(Command::new("cat"));
     /// ```

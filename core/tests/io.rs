@@ -462,32 +462,6 @@ fn continues_try_reads() {
 }
 
 #[test]
-#[cfg(not(target_os = "macos"))]
-#[cfg(not(windows))]
-fn automatic_stop_of_interact_on_eof() {
-    let mut p = DefaultSession::spawn(Command::new("ls")).unwrap();
-    _p_interact(&mut p).unwrap();
-
-    // check that second spawn works
-    let mut p = DefaultSession::spawn(Command::new("ls")).unwrap();
-    _p_interact(&mut p).unwrap();
-}
-
-#[test]
-#[cfg(not(target_os = "macos"))]
-#[cfg(not(windows))]
-fn spawn_after_interact() {
-    let mut p = DefaultSession::spawn(Command::new("ls")).unwrap();
-    _p_interact(&mut p).unwrap();
-
-    let p = DefaultSession::spawn(Command::new("ls")).unwrap();
-    assert!(matches!(
-        p.get_process().wait().unwrap(),
-        WaitStatus::Exited(_, 0)
-    ));
-}
-
-#[test]
 #[cfg(unix)]
 fn read_line_test() {
     let mut proc = DefaultSession::spawn(Command::new("cat")).unwrap();

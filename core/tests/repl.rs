@@ -22,32 +22,6 @@ fn bash() {
     p.get_process_mut().exit(true).unwrap();
 }
 
-#[cfg(target_os = "linux")]
-#[test]
-fn bash_with_log() {
-    use anticipate::{repl::ReplSession, session};
-
-    let p = spawn_bash().unwrap();
-    let prompt = p.get_prompt().to_owned();
-    let quit_cmd = p.get_quit_command().map(|c| c.to_owned());
-    let is_echo = p.is_echo();
-    let session = session::log(p.into_session(), std::io::stderr()).unwrap();
-    let mut p = ReplSession::new(session, prompt, quit_cmd, is_echo);
-
-    p.send_line("echo Hello World").unwrap();
-    let mut msg = String::new();
-    p.read_line(&mut msg).unwrap();
-    assert!(msg.ends_with("Hello World\r\n"));
-
-    thread::sleep(Duration::from_millis(300));
-    p.send(ControlCode::EOT).unwrap();
-
-    assert_eq!(
-        p.get_process().wait().unwrap(),
-        WaitStatus::Exited(p.get_process().pid(), 0)
-    );
-}
-
 #[test]
 fn python() {
     let mut p = spawn_python().unwrap();

@@ -38,6 +38,7 @@ fn is_matched_bytes() {
 #[cfg(target_os = "linux")]
 #[test]
 fn is_matched_eof() {
+    use anticipate::{Eof, WaitStatus};
     let mut session = spawn("echo 'Hello World'").unwrap();
 
     assert_eq!(
@@ -72,6 +73,7 @@ fn read_after_is_matched() {
 #[cfg(target_os = "linux")]
 #[test]
 fn check_after_is_matched_eof() {
+    use anticipate::{Eof, WaitStatus};
     let mut p = spawn("echo AfterSleep").expect("cannot run echo");
     assert_eq!(
         WaitStatus::Exited(p.get_process().pid(), 0),
@@ -91,6 +93,7 @@ fn check_after_is_matched_eof() {
 #[cfg(target_os = "linux")]
 #[test]
 fn expect_after_is_matched_eof() {
+    use anticipate::{Eof, WaitStatus};
     let mut p = spawn("echo AfterSleep").expect("cannot run echo");
     assert_eq!(
         WaitStatus::Exited(p.get_process().pid(), 0),
