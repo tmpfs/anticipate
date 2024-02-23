@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 logos = "0.14"
 thiserror = "1"
-anticipate = { version = "0.8", path = "../expect" }
+anticipate = { version = "0.8", path = "../core" }
 ouroboros = "0.18"
 tracing = "0.1"
 unicode-segmentation = "1"

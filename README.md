@@ -200,7 +200,7 @@ Paths are resolved relative to the parent directory of the script file.
 
 ## Credits
 
-The [expect](/expect) module is a fork of [expectrl](https://github.com/zhiburt/expectrl/) and the syntax is inspired by [asciinema-automation](https://github.com/PierreMarchand20/asciinema_automation/).
+The [core](/core) module is a fork of [expectrl](https://github.com/zhiburt/expectrl/) and the syntax is inspired by [asciinema-automation](https://github.com/PierreMarchand20/asciinema_automation/).
 
 ## License
 
