@@ -70,7 +70,7 @@ pub fn spawn_python() -> Result<ReplSession<NoopLogWriter>, Error> {
 ///
 /// It uses a custom prompt to be able to controll the shell.
 #[cfg(windows)]
-pub fn spawn_powershell() -> Result<ReplSession, Error> {
+pub fn spawn_powershell() -> Result<ReplSession<NoopLogWriter>, Error> {
     const DEFAULT_PROMPT: &str = "EXPECTED_PROMPT>";
     let session = spawn("pwsh -NoProfile -NonInteractive -NoLogo")?;
     let mut powershell = ReplSession::new(

@@ -15,7 +15,7 @@ fn expect_str() {
 #[test]
 fn expect_str() {
     let mut session =
-        spawn(r#"pwsh -c "python ./tests/actions/cat/main.py""#).unwrap();
+        spawn(r#"powershell -c "python ./tests/actions/cat/main.py""#).unwrap();
     session.send_line("Hello World\n\r").unwrap();
     session.expect("Hello World").unwrap();
 }
@@ -64,10 +64,10 @@ fn expect_n_bytes() {
 #[cfg(windows)]
 #[test]
 fn expect_n_bytes() {
-    use anticipate::Session;
+    use anticipate::DefaultSession;
     use std::process::Command;
 
-    let mut session = Session::spawn(Command::new(
+    let mut session = DefaultSession::spawn(Command::new(
         "python ./tests/actions/echo/main.py Hello World",
     ))
     .unwrap();

@@ -1,4 +1,3 @@
-#!/bin/bash
 #$ send e
 #$ flush
 #$ sleep 50

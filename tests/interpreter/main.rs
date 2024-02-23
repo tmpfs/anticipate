@@ -22,10 +22,21 @@ fn interpret_teletype() -> Result<()> {
     Ok(())
 }
 
+#[cfg(unix)]
 #[test]
 fn interpret_env_var() -> Result<()> {
     std::env::set_var("MOCK_PASSWORD", "foobar");
     let file = ScriptFile::parse("tests/fixtures/password-env.sh")?;
+    let options: InterpreterOptions = Default::default();
+    file.run(options)?;
+    Ok(())
+}
+
+#[cfg(windows)]
+#[test]
+fn interpret_env_var() -> Result<()> {
+    std::env::set_var("MOCK_PASSWORD", "foobar");
+    let file = ScriptFile::parse("tests/fixtures/password-env-windows.sh")?;
     let options: InterpreterOptions = Default::default();
     file.run(options)?;
     Ok(())

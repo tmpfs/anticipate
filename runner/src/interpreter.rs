@@ -52,7 +52,10 @@ impl Default for CinemaOptions {
             delay: 75,
             type_pragma: false,
             deviation: 15.0,
+            #[cfg(unix)]
             shell: "sh -noprofile -norc".to_string(),
+            #[cfg(windows)]
+            shell: "powershell".to_string(),
             cols: 80,
             rows: 24,
         }
@@ -82,7 +85,10 @@ pub struct InterpreterOptions {
 impl Default for InterpreterOptions {
     fn default() -> Self {
         Self {
+            #[cfg(unix)]
             command: "sh -noprofile -norc".to_owned(),
+            #[cfg(windows)]
+            command: "powershell".to_string(),
             prompt: None,
             timeout: Some(5000),
             cinema: None,
