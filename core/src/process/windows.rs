@@ -14,16 +14,6 @@ use conpty::{
 use super::{Healthcheck, NonBlocking, Process as ProcessTrait};
 use crate::error::to_io_error;
 
-#[cfg(feature = "async")]
-use super::IntoAsyncStream;
-#[cfg(feature = "async")]
-use futures_lite::{AsyncRead, AsyncWrite};
-#[cfg(feature = "async")]
-use std::{
-    pin::Pin,
-    task::{Context, Poll},
-};
-
 /// A windows representation of a [Process] via [conpty::Process].
 #[derive(Debug)]
 pub struct WinProcess {
@@ -123,61 +113,5 @@ impl NonBlocking for ProcessStream {
     fn set_blocking(&mut self) -> Result<()> {
         self.output.blocking(true);
         Ok(())
-    }
-}
-
-#[cfg(feature = "async")]
-impl IntoAsyncStream for ProcessStream {
-    type AsyncStream = AsyncProcessStream;
-
-    fn into_async_stream(self) -> Result<Self::AsyncStream> {
-        AsyncProcessStream::new(self)
-    }
-}
-
-/// An async version of IO stream of [WinProcess].
-#[cfg(feature = "async")]
-#[derive(Debug)]
-pub struct AsyncProcessStream {
-    output: blocking::Unblock<PipeReader>,
-    input: blocking::Unblock<PipeWriter>,
-}
-
-#[cfg(feature = "async")]
-impl AsyncProcessStream {
-    fn new(stream: ProcessStream) -> Result<Self> {
-        let input = blocking::Unblock::new(stream.input);
-        let output = blocking::Unblock::new(stream.output);
-        Ok(Self { input, output })
-    }
-}
-
-#[cfg(feature = "async")]
-impl AsyncWrite for AsyncProcessStream {
-    fn poll_write(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &[u8],
-    ) -> Poll<Result<usize>> {
-        Pin::new(&mut self.input).poll_write(cx, buf)
-    }
-
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<()>> {
-        Pin::new(&mut self.input).poll_flush(cx)
-    }
-
-    fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<()>> {
-        Pin::new(&mut self.input).poll_close(cx)
-    }
-}
-
-#[cfg(feature = "async")]
-impl AsyncRead for AsyncProcessStream {
-    fn poll_read(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut [u8],
-    ) -> Poll<Result<usize>> {
-        Pin::new(&mut self.output).poll_read(cx, buf)
     }
 }

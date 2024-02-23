@@ -4,16 +4,6 @@ use super::{Healthcheck, NonBlocking, Process};
 use crate::error::to_io_error;
 use ptyprocess::{stream::Stream, PtyProcess};
 
-#[cfg(feature = "async")]
-use super::IntoAsyncStream;
-#[cfg(feature = "async")]
-use futures_lite::{AsyncRead, AsyncWrite};
-#[cfg(feature = "async")]
-use std::{
-    pin::Pin,
-    task::{Context, Poll},
-};
-
 use std::{
     io::{self, Read, Result, Write},
     ops::{Deref, DerefMut},
@@ -131,60 +121,6 @@ impl NonBlocking for PtyStream {
 impl AsRawFd for PtyStream {
     fn as_raw_fd(&self) -> RawFd {
         self.handle.as_raw_fd()
-    }
-}
-
-#[cfg(feature = "async")]
-impl IntoAsyncStream for PtyStream {
-    type AsyncStream = AsyncPtyStream;
-
-    fn into_async_stream(self) -> Result<Self::AsyncStream> {
-        AsyncPtyStream::new(self)
-    }
-}
-
-/// An async version of IO stream of [UnixProcess].
-#[cfg(feature = "async")]
-#[derive(Debug)]
-pub struct AsyncPtyStream {
-    stream: async_io::Async<PtyStream>,
-}
-
-#[cfg(feature = "async")]
-impl AsyncPtyStream {
-    fn new(stream: PtyStream) -> Result<Self> {
-        let stream = async_io::Async::new(stream)?;
-        Ok(Self { stream })
-    }
-}
-
-#[cfg(feature = "async")]
-impl AsyncWrite for AsyncPtyStream {
-    fn poll_write(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &[u8],
-    ) -> Poll<Result<usize>> {
-        Pin::new(&mut self.stream).poll_write(cx, buf)
-    }
-
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<()>> {
-        Pin::new(&mut self.stream).poll_flush(cx)
-    }
-
-    fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<()>> {
-        Pin::new(&mut self.stream).poll_close(cx)
-    }
-}
-
-#[cfg(feature = "async")]
-impl AsyncRead for AsyncPtyStream {
-    fn poll_read(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut [u8],
-    ) -> Poll<Result<usize>> {
-        Pin::new(&mut self.stream).poll_read(cx, buf)
     }
 }
 

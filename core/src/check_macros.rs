@@ -31,7 +31,6 @@
 ///     .unwrap();
 /// }
 /// ```
-#[cfg(not(feature = "async"))]
 #[macro_export]
 macro_rules! check {
     (@check ($($tokens:tt)*) ($session:expr)) => {
@@ -138,123 +137,6 @@ macro_rules! check {
     };
 }
 
-/// See sync version.
-///
-/// Async version of macros use the same approach as sync.
-/// It doesn't use any future features.
-/// So it may be better better you to use you own approach how to check which one done first.
-/// For example you can use `futures_lite::future::race`.
-///
-// async version completely the same as sync version expect 2 words '.await' and 'async'
-// meaning its a COPY && PASTE
-#[cfg(feature = "async")]
-#[macro_export]
-macro_rules! check {
-    (@check ($($tokens:tt)*) ($session:expr)) => {
-        $crate::check!(@case $session, ($($tokens)*), (), ())
-    };
-    (@check ($session:expr, $($tokens:tt)*) ()) => {
-        $crate::check!(@check ($($tokens)*) ($session))
-    };
-    (@check ($session:expr, $($tokens:tt)*) ($session2:expr)) => {
-        compile_error!("Wrong number of session arguments")
-    };
-    (@check ($($tokens:tt)*) ()) => {
-        compile_error!("Please provide a session as a first argument")
-    };
-    (@check () ($session:expr)) => {
-        // there's no reason to run 0 checks so we issue a error.
-        compile_error!("There's no reason in running check with no arguments. Please supply a check branches")
-    };
-    (@case $session:expr, ($var:tt = $exp:expr => $body:tt, $($tail:tt)*), ($($head:tt)*), ($($default:tt)*)) => {
-        // regular case
-        //
-        // note: we keep order correct by putting head at the beggining
-        $crate::check!(@case $session, ($($tail)*), ($($head)* $var = $exp => $body, ), ($($default)*))
-    };
-    (@case $session:expr, ($var:tt = $exp:expr => $body:tt $($tail:tt)*), ($($head:tt)*), ($($default:tt)*)) => {
-        // allow missing comma
-        //
-        // note: we keep order correct by putting head at the beggining
-        $crate::check!(@case $session, ($($tail)*), ($($head)* $var = $exp => $body, ), ($($default)*))
-    };
-    (@case $session:expr, (default => $($tail:tt)*), ($($head:tt)*), ($($default:tt)+)) => {
-        // A repeated default branch
-        compile_error!("Only 1 default case is allowed")
-    };
-    (@case $session:expr, (default => $body:tt, $($tail:tt)*), ($($head:tt)*), ()) => {
-        // A default branch
-        $crate::check!(@case $session, ($($tail)*), ($($head)*), ( { $body; #[allow(unreachable_code)] Ok(()) } ))
-    };
-    (@case $session:expr, (default => $body:tt $($tail:tt)*), ($($head:tt)*), ()) => {
-        // A default branch
-        // allow missed comma `,`
-        $crate::check!(@case $session, ($($tail)*), ($($head)*), ( { $body; Ok(()) } ))
-    };
-    (@case $session:expr, (), ($($head:tt)*), ()) => {
-        // there's no default branch
-        // so we make up our own.
-        $crate::check!(@case $session, (), ($($head)*), ( { Ok(()) } ))
-    };
-    (@case $session:expr, (), ($($tail:tt)*), ($($default:tt)*)) => {
-        // last point of @case
-        // call code generation via @branch
-        $crate::check!(@branch $session, ($($tail)*), ($($default)*))
-    };
-    // We need to use a variable for pattern mathing,
-    // user may chose to drop var name using a placeholder '_',
-    // in which case we can't call a method on such identificator.
-    //
-    // We could use an approach like was described
-    //
-    // ```
-    // Ok(_____random_var_name_which_supposedly_mustnt_be_used) if !_____random_var_name_which_supposedly_mustnt_be_used.is_empty() =>
-    // {
-    //      let $var = _____random_var_name_which_supposedly_mustnt_be_used;
-    // }
-    // ```
-    //
-    // The question is which solution is more effichient.
-    // I took the following approach because there's no chance we influence user's land via the variable name we pick.
-    (@branch $session:expr, ($var:tt = $exp:expr => $body:tt, $($tail:tt)*), ($($default:tt)*)) => {
-        match $crate::session::Session::check(&mut $session, $exp).await {
-            Ok(found) => {
-                if !found.is_empty() {
-                    let $var = found;
-                    $body;
-                    #[allow(unreachable_code)]
-                    return Ok(())
-                }
-
-                $crate::check!(@branch $session, ($($tail)*), ($($default)*))
-            }
-            Err(err) => Err(err),
-        }
-    };
-    (@branch $session:expr, (), ($default:tt)) => {
-        // A standart default branch
-        $default
-    };
-    (@branch $session:expr, ($($tail:tt)*), ($($default:tt)*)) => {
-        compile_error!(
-            concat!(
-                "No supported syntax tail=(",
-                stringify!($($tail,)*),
-                ") ",
-                "default=(",
-                stringify!($($default,)*),
-                ") ",
-        ))
-    };
-    // Entry point
-    ($($tokens:tt)*) => {
-        async {
-            let value: Result::<(), $crate::Error> = $crate::check!(@check ($($tokens)*) ());
-            value
-        }
-    };
-}
-
 #[cfg(test)]
 mod tests {
     #[allow(unused_variables)]
@@ -294,7 +176,6 @@ mod tests {
             default => {}
         };
 
-        #[cfg(not(feature = "async"))]
         {
             crate::check! {
                 &mut session,
@@ -319,34 +200,5 @@ mod tests {
             })
             .unwrap();
         }
-        #[cfg(feature = "async")]
-        async {
-            crate::check! {
-                session,
-                as11d = "zxc" => {},
-            }
-            .await
-            .unwrap();
-            (crate::check! {
-                session,
-                as11d = "zxc" => {},
-            })
-            .await
-            .unwrap();
-            (crate::check! {
-                session,
-                as11d = "zxc" => {},
-            })
-            .await
-            .unwrap();
-            (crate::check! {
-                session,
-                as11d = "zxc" => {
-                    println!("asd")
-                },
-            })
-            .await
-            .unwrap();
-        };
     }
 }

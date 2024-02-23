@@ -37,15 +37,3 @@ pub trait NonBlocking {
     /// Sets a [std::io::Read]er back into a blocking mode.
     fn set_blocking(&mut self) -> Result<()>;
 }
-
-#[cfg(feature = "async")]
-/// IntoAsyncStream interface turns a [Process::Stream] into an async version.
-/// To be used with `async`/`await`syntax
-pub trait IntoAsyncStream {
-    /// AsyncStream type.
-    /// Like [Process::Stream] but it represents an async IO stream.
-    type AsyncStream;
-
-    /// Turns an object into a async stream.
-    fn into_async_stream(self) -> Result<Self::AsyncStream>;
-}

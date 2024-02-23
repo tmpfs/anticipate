@@ -6,14 +6,6 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-#[cfg(feature = "async")]
-use futures_lite::{AsyncRead, AsyncWrite};
-#[cfg(feature = "async")]
-use std::{
-    pin::Pin,
-    task::{Context, Poll},
-};
-
 use crate::process::NonBlocking;
 
 /// Trait for types that log output messages.
@@ -157,49 +149,5 @@ impl<S, W, O: LogWriter> Deref for LogStream<S, W, O> {
 impl<S, W, O: LogWriter> DerefMut for LogStream<S, W, O> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.stream
-    }
-}
-
-#[cfg(feature = "async")]
-impl<S: AsyncWrite + Unpin, W: Write + Unpin, O: LogWriter> AsyncWrite for LogStream<S, W, O> {
-    fn poll_write(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &[u8],
-    ) -> Poll<Result<usize>> {
-        self.log_write(buf);
-        Pin::new(&mut self.get_mut().stream).poll_write(cx, buf)
-    }
-
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<()>> {
-        Pin::new(&mut self.stream).poll_flush(cx)
-    }
-
-    fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<()>> {
-        Pin::new(&mut self.stream).poll_close(cx)
-    }
-
-    fn poll_write_vectored(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        bufs: &[io::IoSlice<'_>],
-    ) -> Poll<Result<usize>> {
-        Pin::new(&mut self.stream).poll_write_vectored(cx, bufs)
-    }
-}
-
-#[cfg(feature = "async")]
-impl<S: AsyncRead + Unpin, W: Write + Unpin, O: LogWriter> AsyncRead for LogStream<S, W, O> {
-    fn poll_read(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut [u8],
-    ) -> Poll<Result<usize>> {
-        let result = Pin::new(&mut self.stream).poll_read(cx, buf);
-        if let Poll::Ready(Ok(n)) = &result {
-            self.log_read(&buf[..*n]);
-        }
-
-        result
     }
 }
