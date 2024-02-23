@@ -110,7 +110,6 @@
 //! [For more examples, check the examples directory.](https://github.com/zhiburt/expectrl/tree/main/examples)
 
 mod captures;
-mod check_macros;
 mod control_code;
 mod error;
 mod needle;
