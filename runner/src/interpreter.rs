@@ -2,10 +2,9 @@ use crate::{
     resolve_path, Error, Instruction, Instructions, Result, ScriptParser,
 };
 use anticipate::{
-    repl::ReplSession,
-    DefaultLogWriter, LogWriter,
-    ControlCode, DefaultSession, Expect, PrefixLogSession, Regex,
-    TeeLogSession,
+    repl::ReplSession, spawn_with_options, ControlCode, DefaultLogWriter,
+    Expect, LogWriter, PrefixLogWriter,
+    Regex, Session, TeeLogWriter,
 };
 use ouroboros::self_referencing;
 use probability::prelude::*;
@@ -13,6 +12,7 @@ use std::io::{BufRead, Write};
 use std::{
     borrow::Cow,
     path::{Path, PathBuf},
+    process::Command,
     thread::sleep,
     time::Duration,
 };
@@ -274,93 +274,46 @@ impl ScriptFile {
 
         tracing::info!(exec = %exec_cmd, "run");
 
+        let timeout = options
+            .timeout
+            .as_ref()
+            .map(|val| Duration::from_millis(*val));
+
+        let cmd = parse_command(&exec_cmd)?;
         if !options.echo && !options.format {
-            default_session(
-                &exec_cmd,
-                options.timeout,
-                prompt,
-                options,
-                pragma,
-                instructions,
-            )?;
+            let pty: Session<DefaultLogWriter> =
+                spawn_with_options(cmd, None, timeout)?;
+            start(pty, prompt, options, pragma, instructions)?;
         } else if options.echo && !options.format {
-            tee_session(
-                &exec_cmd,
-                options.timeout,
-                prompt,
-                options,
-                pragma,
-                instructions,
-            )?;
+            let pty = spawn_with_options(cmd, Some(TeeLogWriter), timeout)?;
+            start(pty, prompt, options, pragma, instructions)?;
+        } else if options.echo && options.format {
+            let pty =
+                spawn_with_options(cmd, Some(PrefixLogWriter), timeout)?;
+            start(pty, prompt, options, pragma, instructions)?;
         }
 
         Ok(())
     }
 }
 
-fn default_session(
-    cmd: &str,
-    _timeout: Option<u64>,
-    prompt: String,
-    options: InterpreterOptions,
-    pragma: Option<Cow<'_, str>>,
-    instructions: &[Instruction<'_>],
-) -> Result<()> {
-    use std::process::Command;
+fn parse_command(cmd: &str) -> Result<Command> {
     let mut parts = comma::parse_command(cmd)
         .ok_or(Error::BadArguments(cmd.to_owned()))?;
     let prog = parts.remove(0);
     let mut command = Command::new(prog);
     command.args(parts);
-
-    let pty = DefaultSession::spawn(command)?;
-    let mut p = ReplSession::new(pty, prompt, None, false);
-
-    if options.cinema.is_some() {
-        p.expect_prompt()?;
-        // Wait for the initial shell prompt to flush
-        sleep(Duration::from_millis(50));
-        tracing::debug!("ready");
-    }
-
-    exec(
-        &mut p,
-        instructions,
-        &options,
-        pragma.as_ref().map(|i| i.as_ref()),
-    )?;
-
-    if options.cinema.is_some() {
-        tracing::debug!("exit");
-        p.send(ControlCode::EndOfTransmission)?;
-    } else {
-        tracing::debug!("eof");
-        // If it's not a shell, ie: has a pragma command
-        // which is a script this will fail with I/O error
-        // but we can safely ignore it
-        let _ = p.send(ControlCode::EndOfTransmission);
-    }
-
-    Ok(())
+    Ok(command)
 }
 
-fn tee_session(
-    cmd: &str,
-    _timeout: Option<u64>,
+fn start<O: LogWriter>(
+    session: Session<O>,
     prompt: String,
     options: InterpreterOptions,
     pragma: Option<Cow<'_, str>>,
     instructions: &[Instruction<'_>],
 ) -> Result<()> {
-    use std::process::Command;
-    let mut parts = comma::parse_command(cmd)
-        .ok_or(Error::BadArguments(cmd.to_owned()))?;
-    let prog = parts.remove(0);
-    let mut command = Command::new(prog);
-    command.args(parts);
-
-    let pty = TeeLogSession::spawn(command)?;
-    let mut p = ReplSession::new(pty, prompt, None, false);
+    let mut p = ReplSession::new(session, prompt, None, false);
 
     if options.cinema.is_some() {
         p.expect_prompt()?;

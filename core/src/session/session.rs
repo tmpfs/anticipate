@@ -1,8 +1,7 @@
-//! Module contains a Session structure.
+//! Pseudo-terminal session.
 
 use std::{
     io::{self, BufRead, BufReader, Read, Write},
-    process::Command,
     time::{self, Duration},
 };
 
@@ -10,8 +9,7 @@ use super::log::LogWriter;
 use crate::{
     error::Error,
     needle::Needle,
-    process::{Healthcheck, NonBlocking, Process},
-    session::OsProcess,
+    process::{Healthcheck, NonBlocking},
     Captures,
 };
 
@@ -398,7 +396,11 @@ impl<O: LogWriter, P, S: Read + NonBlocking> Session<O, P, S> {
 
 impl<O: LogWriter, P, S: Write> Write for Session<O, P, S> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.stream.write(buf)
+        let n = self.stream.write(buf)?;
+        if let Some(logger) = self.logger.as_mut() {
+            logger.log_write(&mut std::io::stdout(), buf);
+        }
+        Ok(n)
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
@@ -415,7 +417,11 @@ impl<O: LogWriter, P, S: Write> Write for Session<O, P, S> {
 
 impl<O: LogWriter, P, S: Read> Read for Session<O, P, S> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        self.stream.read(buf)
+        let n = self.stream.read(buf)?;
+        if let Some(logger) = self.logger.as_mut() {
+            logger.log_read(&mut std::io::stdout(), buf);
+        }
+        Ok(n)
     }
 }
 

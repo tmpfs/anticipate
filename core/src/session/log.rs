@@ -1,12 +1,5 @@
-//! This module container a [LogStream]
-//! which can wrap other streams in order to log a read/write operations.
-
-use std::{
-    io::{self, Read, Result, Write},
-    ops::{Deref, DerefMut},
-};
-
-use crate::process::NonBlocking;
+//! Types for logging I/O.
+use std::io::Write;
 
 /// Trait for types that log output messages.
 pub trait LogWriter {
@@ -21,8 +14,8 @@ pub trait LogWriter {
 pub struct DefaultLogWriter;
 
 impl LogWriter for DefaultLogWriter {
-    fn log_read(&self, writer: &mut impl Write, data: &[u8]) {}
-    fn log_write(&self, writer: &mut impl Write, data: &[u8]) {}
+    fn log_read(&self, _writer: &mut impl Write, _data: &[u8]) {}
+    fn log_write(&self, _writer: &mut impl Write, _data: &[u8]) {}
 }
 
 /// Prefix log writer prefixes read and writes.

@@ -82,7 +82,7 @@ use std::io::{BufRead, Read, Write};
 
 /// Spawn a command.
 pub fn spawn<S: AsRef<str>>(cmd: S) -> Result<DefaultSession, Error> {
-    DefaultSession::spawn_cmd(cmd.as_ref())
+    DefaultSession::spawn_cmd(cmd.as_ref(), None)
 }
 
 /// Trait for types that can read and write to child programs.
