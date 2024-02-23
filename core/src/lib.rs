@@ -1,35 +1,15 @@
-#![warn(
-    missing_docs,
-    future_incompatible,
-    single_use_lifetimes,
-    trivial_casts,
-    trivial_numeric_casts,
-    unreachable_pub,
-    unused_extern_crates,
-    unused_import_braces,
-    unused_qualifications,
-    unused_results,
-    unused_variables,
-    variant_size_differences,
-    missing_debug_implementations,
-    rust_2018_idioms
-)]
+#![warn(missing_docs)]
 #![allow(clippy::uninlined_format_args)]
 
-//! # A tool for automating terminal applications on alike original expect.
+//! Control a pseudo-terminal similar to `expect(1)`.
+//!
+//! Fork of [expectrl](https://docs.rs/expectrl) with minimal
+//! dependencies and features.
 //!
 //! Using the library you can:
 //!
 //! - Spawn process
 //! - Control process
-//! - Interact with process's IO(input/output).
-//!
-//! `expectrl` like original `expect` may shine when you're working with interactive applications.
-//! If your application is not interactive you may not find the library the best choise.
-//!
-//! ## Feature flags
-//!
-//! - `async`: Enables a async/await public API.
 //!
 //! ## Examples
 //!
@@ -78,43 +58,12 @@
 //!
 //! writeln!(sh, "Hello World").unwrap();
 //! ```
-//!
-//! ### An example of `async` feature.
-//!
-//! You need to provide a `features=["async"]` flag to use it.
-//!
-//! ```no_run,ignore
-//! use anticipate::spawn;
-//!
-//! let mut p = spawn("cat").await.unwrap();
-//! p.expect("hello").await.unwrap();
-//! ```
-//!
-//! ### An example of interact session with `STDIN` and `STDOUT`
-//!
-//! ```no_run,ignore
-//! use anticipate::{spawn, stream::stdin::Stdin};
-//! use std::io::stdout;
-//!
-//! let mut sh = spawn("cat").expect("Failed to spawn a 'cat' process");
-//!
-//! let mut stdin = Stdin::open().expect("Failed to create stdin");
-//!
-//! sh.interact(&mut stdin, stdout())
-//!     .spawn()
-//!     .expect("Failed to start interact session");
-//!
-//! stdin.close().expect("Failed to close a stdin");
-//! ```
-//!
-//! [For more examples, check the examples directory.](https://github.com/zhiburt/expectrl/tree/main/examples)
 
 mod captures;
 mod control_code;
 mod error;
 mod needle;
 
-//pub mod interact;
 pub mod process;
 pub mod repl;
 pub mod session;

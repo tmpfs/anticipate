@@ -26,19 +26,6 @@ pub enum Error {
     },
 }
 
-impl Error {
-    #[cfg(unix)]
-    pub(crate) fn unknown(
-        message: impl Into<String>,
-        err: impl Into<String>,
-    ) -> Error {
-        Self::Other {
-            message: message.into(),
-            err: err.into(),
-        }
-    }
-}
-
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

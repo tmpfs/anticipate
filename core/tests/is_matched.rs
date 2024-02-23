@@ -1,6 +1,6 @@
 #![cfg(unix)]
 
-use anticipate::{spawn, Eof, NBytes, Regex, WaitStatus};
+use anticipate::{spawn, NBytes, Regex};
 use std::thread;
 use std::time::Duration;
 
