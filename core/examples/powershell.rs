@@ -17,9 +17,11 @@ fn main() {
             );
 
             // case 2: wait until done, only extract a few infos
-            p.send_line("type README.md | Measure-Object -line -word -character")
-                .await
-                .unwrap();
+            p.send_line(
+                "type README.md | Measure-Object -line -word -character",
+            )
+            .await
+            .unwrap();
             let lines = p.expect(Regex("[0-9]+\\s")).await.unwrap();
             let words = p.expect(Regex("[0-9]+\\s")).await.unwrap();
             let bytes = p.expect(Regex("([0-9]+)[^0-9]")).await.unwrap();

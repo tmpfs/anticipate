@@ -37,7 +37,8 @@ impl Process for UnixProcess {
     }
 
     fn spawn_command(command: Self::Command) -> Result<Self> {
-        let proc = PtyProcess::spawn(command).map_err(to_io_error("Failed to spawn a command"))?;
+        let proc = PtyProcess::spawn(command)
+            .map_err(to_io_error("Failed to spawn a command"))?;
 
         Ok(Self { proc })
     }

@@ -59,7 +59,12 @@ pub fn spawn_python() -> Result<ReplSession, Error> {
 
     let session = spawn("python")?;
 
-    let mut idle = ReplSession::new(session, ">>> ".to_owned(), Some("quit()".to_owned()), false);
+    let mut idle = ReplSession::new(
+        session,
+        ">>> ".to_owned(),
+        Some("quit()".to_owned()),
+        false,
+    );
     idle.expect_prompt()?;
     Ok(idle)
 }
@@ -86,10 +91,12 @@ pub fn spawn_powershell() -> Result<ReplSession, Error> {
 
     // https://stackoverflow.com/questions/69063656/is-it-possible-to-stop-powershell-wrapping-output-in-ansi-sequences/69063912#69063912
     // https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_ansi_terminals?view=powershell-7.2#disabling-ansi-output
-    let _ =
-        powershell.execute(r#"[System.Environment]::SetEnvironmentVariable("TERM", "dumb")"#)?;
-    let _ = powershell
-        .execute(r#"[System.Environment]::SetEnvironmentVariable("TERM", "NO_COLOR")"#)?;
+    let _ = powershell.execute(
+        r#"[System.Environment]::SetEnvironmentVariable("TERM", "dumb")"#,
+    )?;
+    let _ = powershell.execute(
+        r#"[System.Environment]::SetEnvironmentVariable("TERM", "NO_COLOR")"#,
+    )?;
 
     Ok(powershell)
 }
@@ -204,7 +211,10 @@ impl ReplSession {
 impl ReplSession {
     /// Send a command to a repl and verifies that it exited.
     /// Returning it's output.
-    pub fn execute<S: AsRef<str> + Clone>(&mut self, cmd: S) -> Result<Vec<u8>, Error> {
+    pub fn execute<S: AsRef<str> + Clone>(
+        &mut self,
+        cmd: S,
+    ) -> Result<Vec<u8>, Error> {
         self.send_line(cmd)?;
         let found = self.expect_prompt()?;
         Ok(found.before().to_vec())
@@ -213,7 +223,10 @@ impl ReplSession {
     /// Sends line to repl (and flush the output).
     ///
     /// If echo_on=true wait for the input to appear.
-    pub fn send_line<Text: AsRef<str>>(&mut self, line: Text) -> Result<(), Error> {
+    pub fn send_line<Text: AsRef<str>>(
+        &mut self,
+        line: Text,
+    ) -> Result<(), Error> {
         let text = line.as_ref();
         self.session.send_line(text)?;
         if self.is_echo_on {
@@ -263,7 +276,10 @@ mod sync {
             self.session.send_line(text)
         }
 
-        fn expect<N>(&mut self, needle: N) -> std::result::Result<Captures, Error>
+        fn expect<N>(
+            &mut self,
+            needle: N,
+        ) -> std::result::Result<Captures, Error>
         where
             N: Needle,
         {

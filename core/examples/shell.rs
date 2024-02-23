@@ -6,7 +6,12 @@ fn main() -> Result<()> {
     let mut p = anticipate::spawn("sh")?;
     p.get_process_mut().set_echo(true, None)?;
 
-    let mut shell = ReplSession::new(p, String::from("sh-5.1$"), Some(String::from("exit")), true);
+    let mut shell = ReplSession::new(
+        p,
+        String::from("sh-5.1$"),
+        Some(String::from("exit")),
+        true,
+    );
 
     shell.expect_prompt()?;
 
@@ -35,8 +40,12 @@ fn main() -> Result<()> {
         let mut p = anticipate::spawn("sh")?;
         p.get_process_mut().set_echo(true, None)?;
 
-        let mut shell =
-            ReplSession::new(p, String::from("sh-5.1$"), Some(String::from("exit")), true);
+        let mut shell = ReplSession::new(
+            p,
+            String::from("sh-5.1$"),
+            Some(String::from("exit")),
+            true,
+        );
 
         shell.expect_prompt().await?;
 

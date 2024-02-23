@@ -138,7 +138,8 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_captures_get_panics_on_invalid_match() {
-        let m = Captures::new(b"Hello World".to_vec(), vec![Match::new(0, 100)]);
+        let m =
+            Captures::new(b"Hello World".to_vec(), vec![Match::new(0, 100)]);
         let _ = m.get(0);
     }
 
@@ -156,14 +157,16 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_captures_index_panics_on_invalid_match() {
-        let m = Captures::new(b"Hello World".to_vec(), vec![Match::new(0, 100)]);
+        let m =
+            Captures::new(b"Hello World".to_vec(), vec![Match::new(0, 100)]);
         let _ = &m[0];
     }
 
     #[test]
     #[should_panic]
     fn test_captures_index_panics_on_invalid_index() {
-        let m = Captures::new(b"Hello World".to_vec(), vec![Match::new(0, 3)]);
+        let m =
+            Captures::new(b"Hello World".to_vec(), vec![Match::new(0, 3)]);
         let _ = &m[10];
     }
 
@@ -183,7 +186,10 @@ mod tests {
 
     #[test]
     fn test_before() {
-        let m = Captures::new(b"You can use iterator".to_vec(), vec![Match::new(4, 7)]);
+        let m = Captures::new(
+            b"You can use iterator".to_vec(),
+            vec![Match::new(4, 7)],
+        );
         assert_eq!(m.before(), b"You ".as_ref());
 
         let m = Captures::new(
@@ -201,7 +207,10 @@ mod tests {
 
     #[test]
     fn test_matches() {
-        let m = Captures::new(b"You can use iterator".to_vec(), vec![Match::new(4, 7)]);
+        let m = Captures::new(
+            b"You can use iterator".to_vec(),
+            vec![Match::new(4, 7)],
+        );
         assert_eq!(m.before(), b"You ".as_ref());
 
         let m = Captures::new(
@@ -230,9 +239,12 @@ mod tests {
         );
 
         assert_eq!(
-            Captures::new(b"You can use iterator".to_vec(), vec![Match::new(4, 20)])
-                .into_iter()
-                .collect::<Vec<&[u8]>>(),
+            Captures::new(
+                b"You can use iterator".to_vec(),
+                vec![Match::new(4, 20)]
+            )
+            .into_iter()
+            .collect::<Vec<&[u8]>>(),
             vec![b"can use iterator"]
         );
 
@@ -257,9 +269,12 @@ mod tests {
         );
 
         assert_eq!(
-            Captures::new(b"You can use iterator".to_vec(), vec![Match::new(4, 20)])
-                .matches()
-                .collect::<Vec<_>>(),
+            Captures::new(
+                b"You can use iterator".to_vec(),
+                vec![Match::new(4, 20)]
+            )
+            .matches()
+            .collect::<Vec<_>>(),
             vec![b"can use iterator"]
         );
 

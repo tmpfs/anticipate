@@ -37,7 +37,10 @@ where
         })
     }
 
-    pub(crate) fn swap_stream<F, R>(mut self, new_stream: F) -> Result<Session<P, R>, Error>
+    pub(crate) fn swap_stream<F, R>(
+        mut self,
+        new_stream: F,
+    ) -> Result<Session<P, R>, Error>
     where
         F: FnOnce(S) -> R,
         R: Read,
@@ -205,7 +208,8 @@ impl<P, S: Read + NonBlocking> Session<P, S> {
                 // We could read all data available via `read_available` to reduce IO operations,
                 // but in such case we would need to keep a EOF indicator internally in stream,
                 // which is OK if EOF happens onces, but I am not sure if this is a case.
-                eof = self.stream.read_available_once(&mut [0; 1])? == Some(0);
+                eof =
+                    self.stream.read_available_once(&mut [0; 1])? == Some(0);
                 available = self.stream.get_available();
             }
 
@@ -404,7 +408,10 @@ impl<P, S: Write> Write for Session<P, S> {
         self.stream.flush()
     }
 
-    fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
+    fn write_vectored(
+        &mut self,
+        bufs: &[io::IoSlice<'_>],
+    ) -> io::Result<usize> {
         self.stream.write_vectored(bufs)
     }
 }
@@ -507,13 +514,18 @@ impl<R: Read + NonBlocking> TryStream<R> {
                 Ok(n) => {
                     self.stream.keep_in_buffer(&buf[..n]);
                 }
-                Err(err) if err.kind() == io::ErrorKind::WouldBlock => break Ok(false),
+                Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
+                    break Ok(false)
+                }
                 Err(err) => break Err(err),
             }
         }
     }
 
-    fn read_available_once(&mut self, buf: &mut [u8]) -> std::io::Result<Option<usize>> {
+    fn read_available_once(
+        &mut self,
+        buf: &mut [u8],
+    ) -> std::io::Result<Option<usize>> {
         self.stream.flush_in_buffer();
 
         match self.try_read_inner(buf) {
@@ -550,7 +562,10 @@ impl<S: Write> Write for TryStream<S> {
         self.stream.inner.get_mut().inner.flush()
     }
 
-    fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
+    fn write_vectored(
+        &mut self,
+        bufs: &[io::IoSlice<'_>],
+    ) -> io::Result<usize> {
         self.stream.inner.get_mut().inner.write_vectored(bufs)
     }
 }

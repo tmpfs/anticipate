@@ -2,7 +2,8 @@ use anticipate::{check, spawn, Error};
 
 #[cfg(not(feature = "async"))]
 fn main() {
-    let mut session = spawn("python ./tests/source/ansi.py").expect("Can't spawn a session");
+    let mut session = spawn("python ./tests/source/ansi.py")
+        .expect("Can't spawn a session");
 
     loop {
         match check!(
@@ -25,7 +26,8 @@ fn main() {
 #[cfg(feature = "async")]
 fn main() {
     futures_lite::future::block_on(async {
-        let mut session = spawn("python ./tests/source/ansi.py").expect("Can't spawn a session");
+        let mut session = spawn("python ./tests/source/ansi.py")
+            .expect("Can't spawn a session");
 
         loop {
             match check!(

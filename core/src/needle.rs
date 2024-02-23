@@ -47,10 +47,13 @@ pub struct Regex<Re: AsRef<str>>(pub Re);
 
 impl<Re: AsRef<str>> Needle for Regex<Re> {
     fn check(&self, buf: &[u8], _: bool) -> Result<Vec<Match>, Error> {
-        let regex = regex::bytes::Regex::new(self.0.as_ref()).map_err(|_| Error::RegexParsing)?;
+        let regex = regex::bytes::Regex::new(self.0.as_ref())
+            .map_err(|_| Error::RegexParsing)?;
         let matches = regex
             .captures_iter(buf)
-            .flat_map(|c| c.iter().flatten().map(|m| m.into()).collect::<Vec<Match>>())
+            .flat_map(|c| {
+                c.iter().flatten().map(|m| m.into()).collect::<Vec<Match>>()
+            })
             .collect();
         Ok(matches)
     }
@@ -296,7 +299,10 @@ mod tests {
             vec![Match::new(1, 4)]
         );
         assert_eq!("123".check(b"qwerty", false).unwrap(), vec![]);
-        assert_eq!("".check(b"qwerty", false).unwrap(), vec![Match::new(0, 0)]);
+        assert_eq!(
+            "".check(b"qwerty", false).unwrap(),
+            vec![Match::new(0, 0)]
+        );
     }
 
     #[test]
@@ -306,7 +312,10 @@ mod tests {
             vec![Match::new(1, 4)]
         );
         assert_eq!(b"123".check(b"qwerty", false).unwrap(), vec![]);
-        assert_eq!(b"".check(b"qwerty", false).unwrap(), vec![Match::new(0, 0)]);
+        assert_eq!(
+            b"".check(b"qwerty", false).unwrap(),
+            vec![Match::new(0, 0)]
+        );
     }
 
     #[allow(clippy::needless_borrow)]
@@ -333,7 +342,10 @@ mod tests {
             (b'3').check(b"1234", false).unwrap(),
             vec![Match::new(2, 3)]
         );
-        assert_eq!((b'3').check(b"1234", true).unwrap(), vec![Match::new(2, 3)]);
+        assert_eq!(
+            (b'3').check(b"1234", true).unwrap(),
+            vec![Match::new(2, 3)]
+        );
     }
 
     #[test]
@@ -349,9 +361,12 @@ mod tests {
     #[test]
     fn test_any() {
         assert_eq!(
-            Any::<Vec<Box<dyn Needle>>>(vec![Box::new("we"), Box::new(NBytes(3))])
-                .check(b"qwerty", false)
-                .unwrap(),
+            Any::<Vec<Box<dyn Needle>>>(vec![
+                Box::new("we"),
+                Box::new(NBytes(3))
+            ])
+            .check(b"qwerty", false)
+            .unwrap(),
             vec![Match::new(1, 3)]
         );
         assert_eq!(

@@ -76,7 +76,9 @@ impl ProcessStream {
     }
 
     /// Tries to clone the stream.
-    pub fn try_clone(&self) -> std::result::Result<Self, conpty::error::Error> {
+    pub fn try_clone(
+        &self,
+    ) -> std::result::Result<Self, conpty::error::Error> {
         Ok(Self {
             input: self.input.try_clone()?,
             output: self.output.try_clone()?,

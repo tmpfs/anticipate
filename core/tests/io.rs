@@ -4,13 +4,6 @@ use std::{process::Command, thread, time::Duration};
 #[cfg(unix)]
 use anticipate::WaitStatus;
 
-#[cfg(feature = "async")]
-use futures_lite::{
-    future::block_on,
-    io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt},
-};
-
-#[cfg(not(feature = "async"))]
 use std::io::{BufRead, Read, Write};
 
 #[test]
@@ -27,7 +20,8 @@ fn send_controll() {
 #[test]
 #[cfg(windows)]
 fn send_controll() {
-    let mut proc = Session::spawn(Command::new("powershell -C ping localhost")).unwrap();
+    let mut proc =
+        Session::spawn(Command::new("powershell -C ping localhost")).unwrap();
 
     // give powershell a bit time
     thread::sleep(Duration::from_millis(100));
@@ -58,7 +52,9 @@ fn send() {
 #[test]
 #[cfg(windows)]
 fn send() {
-    let mut proc = Session::spawn(Command::new("python ./tests/actions/cat/main.py")).unwrap();
+    let mut proc =
+        Session::spawn(Command::new("python ./tests/actions/cat/main.py"))
+            .unwrap();
     _p_send(&mut proc, "hello cat\r\n").unwrap();
     _p_expect(&mut proc, "hello cat").unwrap();
     proc.get_process_mut().exit(0).unwrap();
@@ -84,7 +80,9 @@ fn send_line() {
 #[test]
 #[cfg(windows)]
 fn send_line() {
-    let mut proc = Session::spawn(Command::new("python ./tests/actions/cat/main.py")).unwrap();
+    let mut proc =
+        Session::spawn(Command::new("python ./tests/actions/cat/main.py"))
+            .unwrap();
     _p_send_line(&mut proc, "hello cat").unwrap();
     _p_expect(&mut proc, "hello cat").unwrap();
     proc.get_process_mut().exit(0).unwrap();
@@ -124,7 +122,6 @@ fn try_read_by_byte() {
 
 #[test]
 #[cfg(windows)]
-#[cfg(not(feature = "async"))]
 fn try_read_by_byte() {
     // it shows that on windows ECHO is turned on.
     // Mustn't it be turned down?
@@ -362,7 +359,8 @@ fn try_read_after_process_exit() {
 fn try_read_after_process_exit() {
     use std::io::ErrorKind;
 
-    let mut proc = Session::spawn(Command::new("cmd /C echo hello cat")).unwrap();
+    let mut proc =
+        Session::spawn(Command::new("cmd /C echo hello cat")).unwrap();
 
     assert_eq!(proc.get_process().wait(None).unwrap(), 0);
 
@@ -505,160 +503,70 @@ fn read_line_test() {
 }
 
 fn _p_read(proc: &mut Session, buf: &mut [u8]) -> std::io::Result<usize> {
-    #[cfg(not(feature = "async"))]
-    {
-        proc.read(buf)
-    }
-    #[cfg(feature = "async")]
-    {
-        block_on(proc.read(buf))
-    }
+    proc.read(buf)
 }
 
 fn _p_write_all(proc: &mut Session, buf: &[u8]) -> std::io::Result<()> {
-    #[cfg(not(feature = "async"))]
-    {
-        proc.write_all(buf)
-    }
-    #[cfg(feature = "async")]
-    {
-        block_on(proc.write_all(buf))
-    }
+    proc.write_all(buf)
 }
 
 fn _p_flush(proc: &mut Session) -> std::io::Result<()> {
-    #[cfg(not(feature = "async"))]
-    {
-        proc.flush()
-    }
-    #[cfg(feature = "async")]
-    {
-        block_on(proc.flush())
-    }
+    proc.flush()
 }
 
 fn _p_send(proc: &mut Session, buf: &str) -> std::io::Result<()> {
-    #[cfg(not(feature = "async"))]
-    {
-        proc.send(buf)
-    }
-    #[cfg(feature = "async")]
-    {
-        block_on(proc.send(buf))
-    }
+    proc.send(buf)
 }
 
-fn _p_expect(proc: &mut Session, n: impl Needle) -> Result<Captures, anticipate::Error> {
-    #[cfg(not(feature = "async"))]
-    {
-        proc.expect(n)
-    }
-    #[cfg(feature = "async")]
-    {
-        block_on(proc.expect(n))
-    }
+fn _p_expect(
+    proc: &mut Session,
+    n: impl Needle,
+) -> Result<Captures, anticipate::Error> {
+    proc.expect(n)
 }
 
 fn _p_send_line(proc: &mut Session, buf: &str) -> std::io::Result<()> {
-    #[cfg(not(feature = "async"))]
-    {
-        proc.send_line(buf)
-    }
-    #[cfg(feature = "async")]
-    {
-        block_on(proc.send_line(buf))
-    }
+    proc.send_line(buf)
 }
 
-fn _p_send_control(proc: &mut Session, buf: impl Into<ControlCode>) -> std::io::Result<()> {
-    #[cfg(not(feature = "async"))]
-    {
-        proc.send(buf.into())
-    }
-    #[cfg(feature = "async")]
-    {
-        block_on(proc.send(buf.into()))
-    }
+fn _p_send_control(
+    proc: &mut Session,
+    buf: impl Into<ControlCode>,
+) -> std::io::Result<()> {
+    proc.send(buf.into())
 }
 
 fn _p_read_to_string(proc: &mut Session) -> std::io::Result<String> {
     let mut buf = String::new();
-    #[cfg(not(feature = "async"))]
-    {
-        proc.read_to_string(&mut buf)?;
-    }
-    #[cfg(feature = "async")]
-    {
-        block_on(proc.read_to_string(&mut buf))?;
-    }
+    proc.read_to_string(&mut buf)?;
     Ok(buf)
 }
 
 fn _p_read_to_end(proc: &mut Session) -> std::io::Result<Vec<u8>> {
     let mut buf = Vec::new();
-    #[cfg(not(feature = "async"))]
-    {
-        proc.read_to_end(&mut buf)?;
-    }
-    #[cfg(feature = "async")]
-    {
-        block_on(proc.read_to_end(&mut buf))?;
-    }
+    proc.read_to_end(&mut buf)?;
     Ok(buf)
 }
 
 fn _p_read_until(proc: &mut Session, ch: u8) -> std::io::Result<Vec<u8>> {
     let mut buf = Vec::new();
-    #[cfg(not(feature = "async"))]
-    {
-        let n = proc.read_until(ch, &mut buf)?;
-        buf = buf[..n].to_vec();
-    }
-    #[cfg(feature = "async")]
-    {
-        let n = block_on(proc.read_until(ch, &mut buf))?;
-        buf = buf[..n].to_vec();
-    }
+    let n = proc.read_until(ch, &mut buf)?;
+    buf = buf[..n].to_vec();
     Ok(buf)
 }
 
 fn _p_read_line(proc: &mut Session) -> std::io::Result<String> {
     let mut buf = String::new();
-    #[cfg(not(feature = "async"))]
-    {
-        proc.read_line(&mut buf)?;
-    }
-    #[cfg(feature = "async")]
-    {
-        block_on(proc.read_line(&mut buf))?;
-    }
+    proc.read_line(&mut buf)?;
     Ok(buf)
 }
 
 fn _p_is_empty(proc: &mut Session) -> std::io::Result<bool> {
-    #[cfg(not(feature = "async"))]
-    {
-        proc.is_empty()
-    }
-    #[cfg(feature = "async")]
-    {
-        block_on(proc.is_empty())
-    }
+    proc.is_empty()
 }
 
 fn _p_try_read(proc: &mut Session, buf: &mut [u8]) -> std::io::Result<usize> {
-    #[cfg(not(feature = "async"))]
-    {
-        proc.try_read(buf)
-    }
-    #[cfg(feature = "async")]
-    {
-        block_on(async {
-            futures_lite::future::poll_once(proc.read(buf))
-                .await
-                .unwrap_or(Err(std::io::Error::new(std::io::ErrorKind::WouldBlock, "")))
-        })
-    }
+    proc.try_read(buf)
 }
 
 #[cfg(windows)]
