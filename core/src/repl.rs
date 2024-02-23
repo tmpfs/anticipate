@@ -14,10 +14,7 @@ use std::io::{BufRead, Read, Write};
 
 /// Spawn a bash session.
 ///
-/// It uses a custom prompt to be able to controll shell better.
-///
-/// If you wan't to use [Session::interact] method it is better to use just Session.
-/// Because we don't handle echoes here (currently). Ideally we need to.
+/// It uses a custom prompt for deterministic control of the shell.
 #[cfg(unix)]
 pub fn spawn_bash() -> Result<ReplSession<DefaultLogWriter>, Error> {
     const DEFAULT_PROMPT: &str = "EXPECT_PROMPT";

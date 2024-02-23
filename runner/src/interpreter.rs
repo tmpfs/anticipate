@@ -3,7 +3,7 @@ use crate::{
 };
 use anticipate::{
     repl::ReplSession,
-    session::{DefaultLogWriter, LogWriter},
+    DefaultLogWriter, LogWriter,
     ControlCode, DefaultSession, Expect, PrefixLogSession, Regex,
     TeeLogSession,
 };

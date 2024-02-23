@@ -66,7 +66,7 @@ mod needle;
 
 pub mod process;
 pub mod repl;
-pub mod session;
+pub(crate) mod session;
 
 pub use captures::Captures;
 pub use control_code::ControlCode;
@@ -76,10 +76,7 @@ pub use needle::{Any, Eof, NBytes, Needle, Regex};
 #[cfg(unix)]
 pub use ptyprocess::{Signal, WaitStatus};
 
-pub use session::{
-    DefaultLogWriter, DefaultSession, PrefixLogSession, PrefixLogWriter,
-    Session, TeeLogSession, TeeLogWriter,
-};
+pub use session::*;
 
 use std::io::{BufRead, Read, Write};
 
