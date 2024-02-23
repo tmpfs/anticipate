@@ -661,30 +661,6 @@ fn _p_try_read(proc: &mut Session, buf: &mut [u8]) -> std::io::Result<usize> {
     }
 }
 
-#[cfg(unix)]
-fn _p_interact(proc: &mut Session) -> Result<(), anticipate::Error> {
-    use anticipate::{interact::InteractOptions, stream::stdin::Stdin};
-    use std::io::stdout;
-
-    let mut stdin = Stdin::open()?;
-    let stdout = stdout();
-
-    #[cfg(not(feature = "async"))]
-    {
-        proc.interact(&mut stdin, stdout)
-            .spawn(InteractOptions::default())?;
-    }
-    #[cfg(feature = "async")]
-    {
-        block_on(
-            proc.interact(&mut stdin, stdout)
-                .spawn(InteractOptions::default()),
-        )?;
-    }
-
-    stdin.close()
-}
-
 #[cfg(windows)]
 fn do_until(mut foo: impl FnMut() -> bool, timeout: Duration) -> bool {
     let now = std::time::Instant::now();

@@ -119,7 +119,7 @@ mod needle;
 #[cfg(all(windows, feature = "polling"))]
 mod waiter;
 
-pub mod interact;
+//pub mod interact;
 pub mod process;
 pub mod repl;
 pub mod session;

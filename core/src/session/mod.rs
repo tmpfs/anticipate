@@ -25,7 +25,6 @@ mod sync_session;
 use std::{io::Write, process::Command};
 
 use crate::{
-    interact::InteractSession,
     process::Process,
     stream::log::{DefaultLogWriter, LogStream, TeeLogWriter},
     Error,
@@ -104,59 +103,6 @@ impl Session {
         let session = Self::new(process, stream)?;
 
         Ok(session)
-    }
-}
-
-impl<P, S> Session<P, S> {
-    /// Interact gives control of the child process to the interactive user (the
-    /// human at the keyboard or a [`Read`]er implementator).
-    ///
-    /// You can set different callbacks to the session, see [`InteractSession`].
-    ///
-    /// Keystrokes are sent to the child process, and
-    /// the `stdout` and `stderr` output of the child process is printed.
-    ///
-    /// When the user types the `escape_character` this method will return control to a running process.
-    /// The escape_character will not be transmitted.
-    /// The default for escape_character is entered as `Ctrl-]`, the very same as BSD telnet.
-    ///
-    /// This simply echos the child `stdout` and `stderr` to the real `stdout` and
-    /// it echos the real `stdin` to the child `stdin`.
-    ///
-    /// BEWARE that interact finishes after a process stops.
-    /// So after the return you may not obtain a correct status of a process.
-    ///
-    /// In not `async` mode the default version uses a buzy loop.
-    ///
-    /// - On `linux` you can use a `polling` version using the corresponding feature.
-    /// - On `windows` the feature is also present but it spawns a thread for pooling which creates a set of obsticales.
-    ///   Specifically if you're planning to call `interact()` multiple times it may not be safe. Because the previous threads may still be running.
-    ///
-    /// It works via polling in `async` mode on both `unix` and `windows`.
-    ///
-    /// # Example
-    ///
-    #[cfg_attr(
-        all(unix, not(feature = "async"), not(feature = "polling")),
-        doc = "```no_run"
-    )]
-    #[cfg_attr(
-        not(all(unix, not(feature = "async"), not(feature = "polling"))),
-        doc = "```ignore"
-    )]
-    /// use std::io::{stdout, Cursor};
-    /// use anticipate::{self, interact::InteractOptions};
-    ///
-    /// let mut p = anticipate::spawn("cat").unwrap();
-    ///
-    /// let input = Cursor::new(String::from("Some text right here"));
-    ///
-    /// p.interact(input, stdout()).spawn(InteractOptions::default()).unwrap();
-    /// ```
-    ///
-    /// [`Read`]: std::io::Read
-    pub fn interact<I, O>(&mut self, input: I, output: O) -> InteractSession<&mut Self, I, O> {
-        InteractSession::new(self, input, output)
     }
 }
 
