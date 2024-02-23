@@ -2,9 +2,9 @@ use crate::{
     resolve_path, Error, Instruction, Instructions, Result, ScriptParser,
 };
 use anticipate::{
-    repl::ReplSession, spawn_with_options, ControlCode, DefaultLogWriter,
-    Expect, LogWriter, PrefixLogWriter,
-    Regex, Session, TeeLogWriter,
+    log::{DefaultLogWriter, LogWriter, PrefixLogWriter, TeeLogWriter},
+    repl::ReplSession,
+    spawn_with_options, ControlCode, Expect, Regex, Session,
 };
 use ouroboros::self_referencing;
 use probability::prelude::*;

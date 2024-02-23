@@ -1,4 +1,4 @@
-//! Types for logging I/O.
+//! Types for writing and formatting logs to stdout.
 use std::io::Write;
 
 /// Trait for types that log output messages.

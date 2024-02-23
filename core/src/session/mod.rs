@@ -15,10 +15,9 @@
 //! p.read_line(&mut line).unwrap();
 //! ```
 
-mod log;
 mod session;
 
-use crate::{process::Process, Error};
+use crate::{log::*, process::Process, Error};
 use std::{process::Command, time::Duration};
 
 #[cfg(unix)]
@@ -36,7 +35,6 @@ pub type OsProcess = OsProc;
 /// OS process stream which is a default one for [`Session`].
 pub type OsProcessStream = OsProcStream;
 
-pub use log::*;
 pub use session::Session;
 
 /// Session without logging.

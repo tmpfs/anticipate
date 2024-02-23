@@ -5,9 +5,9 @@ use std::{
     time::{self, Duration},
 };
 
-use super::log::LogWriter;
 use crate::{
     error::Error,
+    log::LogWriter,
     needle::Needle,
     process::{Healthcheck, NonBlocking},
     Captures,

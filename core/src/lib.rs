@@ -64,6 +64,7 @@ mod control_code;
 mod error;
 mod needle;
 
+pub mod log;
 pub mod process;
 pub mod repl;
 pub(crate) mod session;

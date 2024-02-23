@@ -1,4 +1,4 @@
-//! This module contains a platform independent abstraction over an os process.
+//! Platform independent abstraction over an os process.
 
 use std::io::Result;
 

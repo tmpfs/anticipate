@@ -1,8 +1,8 @@
-//! This module contains a list of special Sessions that can be spawned.
+//! REPL manages a session with a known prompt.
 
 use crate::{
     error::Error,
-    session::{DefaultLogWriter, LogWriter},
+    log::{DefaultLogWriter, LogWriter},
     spawn, Captures, Expect, Needle, Session,
 };
 use std::ops::{Deref, DerefMut};
@@ -116,12 +116,6 @@ pub struct ReplSession<O: LogWriter> {
 
 impl<O: LogWriter> ReplSession<O> {
     /// Creates a repl session.
-    ///
-    /// The argument list is:
-    ///     - session; a spawned session which repl will wrap.
-    ///     - prompt; a string which will identify that the command was run.
-    ///     - quit_command; a command which will be called when [ReplSession] instance is dropped.
-    ///     - is_echo_on; determines whether the prompt check will be done twice.
     pub fn new(
         session: Session<O>,
         prompt: String,
