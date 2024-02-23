@@ -6,7 +6,7 @@ description = "Script runner with asciinema support"
 license = "MIT OR Apache-2.0"
 
 [workspace]
-members = ["runner", "expect"]
+members = ["runner", "core"]
 
 [dependencies]
 anyhow = "1"

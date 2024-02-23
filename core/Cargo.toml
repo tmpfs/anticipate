@@ -1,0 +1,25 @@
+[package]
+name = "anticipate"
+version = "0.8.1"
+authors = ["tmpfs <muji@tmpfs.org>", "Maxim Zhiburt <zhiburt@gmail.com>"]
+edition = "2021"
+resolver = "2"
+description = "Automate terminal applications in Unix like Don libes expect"
+repository = "https://github.com/tmpfs/anticipate"
+license = "MIT"
+categories = ["development-tools::testing", "os::unix-apis", "os::windows-apis"]
+keywords = ["expect", "pty", "testing", "terminal", "automation"]
+
+[dependencies]
+thiserror = "1"
+regex = "1.6.0"
+
+[target.'cfg(unix)'.dependencies]
+ptyprocess = "0.4.1"
+nix = "0.26"
+
+[target.'cfg(windows)'.dependencies]
+conpty = "0.5.0"
+
+[package.metadata.docs.rs]
+all-features = false
