@@ -5,7 +5,7 @@ on:
   pull_request:
 
 env:
-  RUST_BACKTRACE: full
+  RUST_BACKTRACE: 1
   ANTICIPATE_ECHO: true
 
 jobs:
@@ -33,6 +33,10 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check sh version
+        run: |
+          sh --version
 
       - name: Run tests
         run: |
