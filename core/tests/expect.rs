@@ -17,7 +17,11 @@ fn expect_str() {
     let mut session =
         spawn(r#"powershell -c "python ./tests/actions/cat/main.py""#)
             .unwrap();
-    session.send_line("Hello World\r\n").unwrap();
+    session.send_line("Hello World").unwrap();
+
+    // give shell some time
+    std::thread::sleep(Duration::from_millis(25));
+
     session.expect("Hello World").unwrap();
 }
 
