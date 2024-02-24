@@ -36,4 +36,4 @@ jobs:
 
       - name: Run tests
         run: |
-          cargo test expect_str --all
+          cargo test expect_str --all -- --nocapture

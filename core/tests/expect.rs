@@ -17,7 +17,13 @@ fn expect_str() {
     let mut session =
         spawn(r#"pwsh -c "python ./tests/actions/cat/main.py""#)
             .unwrap();
+    
+    println!("Sending line...");
+
     session.send_line("Hello World").unwrap();
+
+    println!("line sent...");
+
     session.expect("Hello World").unwrap();
 }
 
