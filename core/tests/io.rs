@@ -21,7 +21,7 @@ fn send_controll() {
 #[cfg(windows)]
 fn send_controll() {
     let mut proc =
-        DefaultSession::spawn(Command::new("powershell -C ping localhost"))
+        DefaultSession::spawn(Command::new("pwsh -C ping localhost"))
             .unwrap();
 
     // give powershell a bit time
@@ -129,7 +129,7 @@ fn try_read_by_byte() {
     // it shows that on windows ECHO is turned on.
     // Mustn't it be turned down?
 
-    let mut proc = DefaultSession::spawn(Command::new("powershell")).unwrap();
+    let mut proc = DefaultSession::spawn(Command::new("pwsh")).unwrap();
     _p_send_line(
         &mut proc,
         "while (1) { read-host | set r; if (!$r) { break }}",
@@ -188,7 +188,7 @@ fn blocking_read_after_non_blocking() {
 #[test]
 #[cfg(windows)]
 fn blocking_read_after_non_blocking() {
-    let mut proc = DefaultSession::spawn(Command::new("powershell")).unwrap();
+    let mut proc = DefaultSession::spawn(Command::new("pwsh")).unwrap();
     _p_send_line(
         &mut proc,
         "while (1) { read-host | set r; if (!$r) { break }}",
@@ -241,7 +241,7 @@ fn try_read() {
 #[test]
 #[cfg(windows)]
 fn try_read() {
-    let mut proc = DefaultSession::spawn(Command::new("powershell")).unwrap();
+    let mut proc = DefaultSession::spawn(Command::new("pwsh")).unwrap();
     thread::sleep(Duration::from_millis(300));
     _p_send_line(
         &mut proc,

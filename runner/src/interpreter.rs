@@ -23,7 +23,7 @@ const PROMPT: &str = "➜ ";
 #[cfg(unix)]
 const COMMAND: &str = "bash -noprofile -norc";
 #[cfg(windows)]
-const COMMAND: &str = "powershell";
+const COMMAND: &str = "pwsh -NoProfile -NonInteractive -NoLogo";
 
 /// Source for probability distribution.
 struct Source<T>(T);
