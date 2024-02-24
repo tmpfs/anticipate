@@ -1,7 +1,7 @@
 #![warn(missing_docs)]
 #![forbid(unsafe_code)]
-//! Control a pseudo-terminal similar to `expect(1)`, 
-//! fork of [expectrl](https://docs.rs/expectrl) with 
+//! Control a pseudo-terminal similar to `expect(1)`,
+//! fork of [expectrl](https://docs.rs/expectrl) with
 //! minimal dependencies and features.
 
 mod captures;

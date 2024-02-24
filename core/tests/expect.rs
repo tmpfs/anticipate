@@ -15,8 +15,9 @@ fn expect_str() {
 #[test]
 fn expect_str() {
     let mut session =
-        spawn(r#"powershell -c "python ./tests/actions/cat/main.py""#).unwrap();
-    session.send_line("Hello World\n\r").unwrap();
+        spawn(r#"pwsh -c "python ./tests/actions/cat/main.py""#)
+            .unwrap();
+    session.send_line("Hello World").unwrap();
     session.expect("Hello World").unwrap();
 }
 
@@ -45,10 +46,10 @@ fn expect_regex_lazy() {
 #[test]
 fn expect_regex() {
     let mut session =
-        spawn("python ./tests/actions/echo/main.py Hello World").unwrap();
+        spawn("echo 'Hello World'").unwrap();
     let m = session.expect(Regex("lo.*")).unwrap();
     assert_eq!(m.matches().count(), 1);
-    assert_eq!(m.get(0).unwrap(), b"lo World\r");
+    assert_eq!(m.get(0).unwrap(), b"lo World'\r");
 }
 
 #[cfg(unix)]
@@ -134,7 +135,7 @@ fn expect_eof_timeout() {
     let mut p = spawn("sleep 3").expect("cannot run sleep 3");
     p.set_expect_timeout(Some(Duration::from_millis(100)));
     match p.expect(Eof) {
-        Err(anticipate::Error::ExpectTimeout) => {}
+        Err(anticipate::Error::ExpectTimeout(_)) => {}
         r => panic!("reached a timeout {r:?}"),
     }
 }
@@ -145,7 +146,7 @@ fn expect_eof_timeout() {
     let mut p = spawn("sleep 3").expect("cannot run sleep 3");
     p.set_expect_timeout(Some(Duration::from_millis(100)));
     match p.expect(Eof) {
-        Err(anticipate::Error::ExpectTimeout) => {}
+        Err(anticipate::Error::ExpectTimeout(_)) => {}
         r => panic!("should raise TimeOut {:?}", r),
     }
 }

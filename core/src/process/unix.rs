@@ -1,7 +1,6 @@
 //! This module contains a Unix implementation of [crate::process::Process].
 
 use super::{Healthcheck, NonBlocking, Process};
-use crate::error::to_io_error;
 use ptyprocess::{stream::Stream, PtyProcess};
 
 use std::{
@@ -37,17 +36,12 @@ impl Process for UnixProcess {
     }
 
     fn spawn_command(command: Self::Command) -> Result<Self> {
-        let proc = PtyProcess::spawn(command)
-            .map_err(to_io_error("Failed to spawn a command"))?;
-
+        let proc = PtyProcess::spawn(command)?;
         Ok(Self { proc })
     }
 
     fn open_stream(&mut self) -> Result<Self::Stream> {
-        let stream = self
-            .proc
-            .get_pty_stream()
-            .map_err(to_io_error("Failed to create a stream"))?;
+        let stream = self.proc.get_pty_stream()?;
         let stream = PtyStream::new(stream);
         Ok(stream)
     }
@@ -55,9 +49,7 @@ impl Process for UnixProcess {
 
 impl Healthcheck for UnixProcess {
     fn is_alive(&mut self) -> Result<bool> {
-        self.proc
-            .is_alive()
-            .map_err(to_io_error("Failed to call pty.is_alive()"))
+        Ok(self.proc.is_alive()?)
     }
 }
 

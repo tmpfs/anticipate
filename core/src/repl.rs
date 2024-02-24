@@ -2,7 +2,7 @@
 
 use crate::{
     error::Error,
-    log::{NoopLogWriter, LogWriter},
+    log::{LogWriter, NoopLogWriter},
     spawn, Captures, Expect, Needle, Session,
 };
 use std::ops::{Deref, DerefMut};

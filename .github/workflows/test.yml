@@ -1,0 +1,35 @@
+name: Tests
+
+on:
+  #workflow_call:
+  pull_request:
+
+env:
+  RUST_BACKTRACE: full
+  ANTICIPATE_ECHO: true
+
+jobs:
+  check:
+    name: Run test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: ubuntu-latest
+          #- os: windows-latest
+          - os: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ⚡ Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run tests
+        run: |
+          cargo test --all -- --nocapture

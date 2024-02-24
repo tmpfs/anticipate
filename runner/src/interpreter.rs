@@ -2,7 +2,7 @@ use crate::{
     resolve_path, Error, Instruction, Instructions, Result, ScriptParser,
 };
 use anticipate::{
-    log::{NoopLogWriter, LogWriter, PrefixLogWriter, StandardLogWriter},
+    log::{LogWriter, NoopLogWriter, PrefixLogWriter, StandardLogWriter},
     repl::ReplSession,
     spawn_with_options, ControlCode, Expect, Regex, Session,
 };
@@ -20,7 +20,12 @@ use tracing::{span, Level};
 use unicode_segmentation::UnicodeSegmentation;
 
 const PROMPT: &str = "➜ ";
+#[cfg(unix)]
+const COMMAND: &str = "bash -noprofile -norc";
+#[cfg(windows)]
+const COMMAND: &str = "pwsh -NoProfile -NonInteractive -NoLogo";
 
+/// Source for probability distribution.
 struct Source<T>(T);
 
 impl<T: rand::RngCore> source::Source for Source<T> {
@@ -52,10 +57,7 @@ impl Default for CinemaOptions {
             delay: 75,
             type_pragma: false,
             deviation: 15.0,
-            #[cfg(unix)]
-            shell: "sh -noprofile -norc".to_string(),
-            #[cfg(windows)]
-            shell: "powershell".to_string(),
+            shell: COMMAND.to_string(),
             cols: 80,
             rows: 24,
         }
@@ -85,15 +87,12 @@ pub struct InterpreterOptions {
 impl Default for InterpreterOptions {
     fn default() -> Self {
         Self {
-            #[cfg(unix)]
-            command: "sh -noprofile -norc".to_owned(),
-            #[cfg(windows)]
-            command: "powershell".to_string(),
+            command: COMMAND.to_owned(),
             prompt: None,
-            timeout: Some(5000),
+            timeout: Some(10000),
             cinema: None,
             id: None,
-            echo: false,
+            echo: std::env::var("ANTICIPATE_ECHO").ok().is_some(),
             format: false,
             print_comments: false,
         }
@@ -109,7 +108,7 @@ impl InterpreterOptions {
         print_comments: bool,
     ) -> Self {
         Self {
-            command: "sh -noprofile -norc".to_owned(),
+            command: COMMAND.to_owned(),
             prompt: None,
             timeout: Some(timeout),
             cinema: None,
@@ -291,7 +290,8 @@ impl ScriptFile {
                 spawn_with_options(cmd, None, timeout)?;
             start(pty, prompt, options, pragma, instructions)?;
         } else if options.echo && !options.format {
-            let pty = spawn_with_options(cmd, Some(StandardLogWriter), timeout)?;
+            let pty =
+                spawn_with_options(cmd, Some(StandardLogWriter), timeout)?;
             start(pty, prompt, options, pragma, instructions)?;
         } else if options.echo && options.format {
             let pty =
