@@ -88,7 +88,7 @@ impl Default for InterpreterOptions {
             #[cfg(unix)]
             command: "sh -noprofile -norc".to_owned(),
             #[cfg(windows)]
-            command: "powershell".to_string(),
+            command: "powershell".to_owned(),
             prompt: None,
             timeout: Some(5000),
             cinema: None,
@@ -109,7 +109,10 @@ impl InterpreterOptions {
         print_comments: bool,
     ) -> Self {
         Self {
+            #[cfg(unix)]
             command: "sh -noprofile -norc".to_owned(),
+            #[cfg(windows)]
+            command: "powershell".to_owned(),
             prompt: None,
             timeout: Some(timeout),
             cinema: None,
