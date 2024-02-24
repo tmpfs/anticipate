@@ -13,8 +13,11 @@ use anticipate::{log::PrefixLogWriter, spawn_with_options};
 fn log() {
     let writer = StubWriter::default();
 
+    let mut cmd = Command::new("python");
+    cmd.arg("./tests/actions/cat/main.py");
+
     let mut session = spawn_with_options(
-        Command::new("python").arg("./tests/actions/cat/main.py"),
+        cmd,
         Some(PrefixLogWriter::new(Box::new(writer.clone()))),
         None,
     )

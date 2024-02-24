@@ -1,3 +1,5 @@
+use std::io::Read;
+
 #[test]
 #[cfg(windows)]
 fn conpty_echo() {
