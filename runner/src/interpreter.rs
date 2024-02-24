@@ -20,6 +20,10 @@ use tracing::{span, Level};
 use unicode_segmentation::UnicodeSegmentation;
 
 const PROMPT: &str = "➜ ";
+#[cfg(unix)]
+const COMMAND: &str "bash -noprofile -norc";
+#[cfg(windows)]
+const COMMAND: &str = "powershell";
 
 struct Source<T>(T);
 
@@ -52,10 +56,7 @@ impl Default for CinemaOptions {
             delay: 75,
             type_pragma: false,
             deviation: 15.0,
-            #[cfg(unix)]
-            shell: "sh -noprofile -norc".to_string(),
-            #[cfg(windows)]
-            shell: "powershell".to_string(),
+            shell: COMMAND.to_string(),
             cols: 80,
             rows: 24,
         }
@@ -85,10 +86,7 @@ pub struct InterpreterOptions {
 impl Default for InterpreterOptions {
     fn default() -> Self {
         Self {
-            #[cfg(unix)]
-            command: "sh -noprofile -norc".to_owned(),
-            #[cfg(windows)]
-            command: "powershell".to_owned(),
+            command: COMMAND.to_owned(),
             prompt: None,
             timeout: Some(5000),
             cinema: None,
@@ -109,10 +107,7 @@ impl InterpreterOptions {
         print_comments: bool,
     ) -> Self {
         Self {
-            #[cfg(unix)]
-            command: "sh -noprofile -norc".to_owned(),
-            #[cfg(windows)]
-            command: "powershell".to_owned(),
+            command: COMMAND.to_owned(),
             prompt: None,
             timeout: Some(timeout),
             cinema: None,
