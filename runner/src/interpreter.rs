@@ -89,7 +89,7 @@ impl Default for InterpreterOptions {
         Self {
             command: COMMAND.to_owned(),
             prompt: None,
-            timeout: Some(5000),
+            timeout: Some(10000),
             cinema: None,
             id: None,
             echo: std::env::var("ANTICIPATE_ECHO").ok().is_some(),
