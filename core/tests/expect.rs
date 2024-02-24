@@ -17,10 +17,6 @@ fn expect_str() {
     let mut session =
         spawn(r#"powershell -c "python ./tests/actions/cat/main.py""#)
             .unwrap();
-
-    // give shell some time
-    std::thread::sleep(Duration::from_millis(25));
-
     session.send_line("Hello World").unwrap();
     session.expect("Hello World").unwrap();
 }
@@ -139,7 +135,7 @@ fn expect_eof_timeout() {
     let mut p = spawn("sleep 3").expect("cannot run sleep 3");
     p.set_expect_timeout(Some(Duration::from_millis(100)));
     match p.expect(Eof) {
-        Err(anticipate::Error::ExpectTimeout) => {}
+        Err(anticipate::Error::ExpectTimeout(_)) => {}
         r => panic!("reached a timeout {r:?}"),
     }
 }
@@ -150,7 +146,7 @@ fn expect_eof_timeout() {
     let mut p = spawn("sleep 3").expect("cannot run sleep 3");
     p.set_expect_timeout(Some(Duration::from_millis(100)));
     match p.expect(Eof) {
-        Err(anticipate::Error::ExpectTimeout) => {}
+        Err(anticipate::Error::ExpectTimeout(_)) => {}
         r => panic!("should raise TimeOut {:?}", r),
     }
 }

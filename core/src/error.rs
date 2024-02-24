@@ -10,8 +10,8 @@ pub enum Error {
     #[error("failed to parse regex")]
     RegexParsing,
     /// An timeout was reached while waiting in expect call.
-    #[error("reached the timeout for an expectation")]
-    ExpectTimeout,
+    #[error("reached the timeout for an expectation ({0}ms)")]
+    ExpectTimeout(u64),
     /// Unhandled EOF error.
     #[error("unhandled EOF")]
     Eof,
