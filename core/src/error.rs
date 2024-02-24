@@ -1,4 +1,5 @@
 use thiserror::Error;
+use std::time::Duration;
 
 /// Error type for the library.
 #[derive(Debug, Error)]
@@ -10,8 +11,8 @@ pub enum Error {
     #[error("failed to parse regex")]
     RegexParsing,
     /// An timeout was reached while waiting in expect call.
-    #[error("reached the timeout for an expectation ({0}ms)")]
-    ExpectTimeout(u64),
+    #[error("reached the timeout for an expectation ({0:?})")]
+    ExpectTimeout(Duration),
     /// Unhandled EOF error.
     #[error("unhandled EOF")]
     Eof,
