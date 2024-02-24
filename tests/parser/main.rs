@@ -262,9 +262,6 @@ fn parse_pragma_first_err() -> Result<()> {
 # comment before the pragma
 #!sh"#;
     let result = ScriptParser::parse(source);
-
-    println!("{:#?}", result);
-
     assert!(matches!(result, Err(Error::PragmaFirst)));
     Ok(())
 }
