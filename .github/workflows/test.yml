@@ -32,4 +32,4 @@ jobs:
 
       - name: Run tests
         run: |
-          cargo test --all -- --nocapture
+          cargo test conpty --all -- --nocapture
