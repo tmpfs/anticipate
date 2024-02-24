@@ -388,7 +388,6 @@ impl<O: LogWriter, P, S: Read + NonBlocking> Session<O, P, S> {
     /// Returns `[std::io::ErrorKind::WouldBlock]`
     /// in case if there's nothing to read.
     pub fn try_read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        println!("try_read...");
         self.stream.try_read(buf)
     }
 
