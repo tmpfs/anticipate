@@ -17,11 +17,11 @@ fn expect_str() {
     let mut session =
         spawn(r#"powershell -c "python ./tests/actions/cat/main.py""#)
             .unwrap();
-    session.send_line("Hello World").unwrap();
 
     // give shell some time
     std::thread::sleep(Duration::from_millis(25));
 
+    session.send_line("Hello World").unwrap();
     session.expect("Hello World").unwrap();
 }
 
@@ -50,10 +50,10 @@ fn expect_regex_lazy() {
 #[test]
 fn expect_regex() {
     let mut session =
-        spawn("python ./tests/actions/echo/main.py Hello World").unwrap();
+        spawn("echo 'Hello World'").unwrap();
     let m = session.expect(Regex("lo.*")).unwrap();
     assert_eq!(m.matches().count(), 1);
-    assert_eq!(m.get(0).unwrap(), b"lo World\r");
+    assert_eq!(m.get(0).unwrap(), b"lo World");
 }
 
 #[cfg(unix)]
