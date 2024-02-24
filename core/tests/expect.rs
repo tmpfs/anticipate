@@ -15,8 +15,7 @@ fn expect_str() {
 #[test]
 fn expect_str() {
     let mut session =
-        spawn(r#"pwsh -c "python ./tests/actions/cat/main.py""#)
-            .unwrap();
+        spawn(r#"pwsh -c "python ./tests/actions/cat/main.py""#).unwrap();
     session.send_line("Hello World").unwrap();
     session.expect("Hello World").unwrap();
 }
@@ -45,8 +44,7 @@ fn expect_regex_lazy() {
 #[cfg(windows)]
 #[test]
 fn expect_regex() {
-    let mut session =
-        spawn("echo 'Hello World'").unwrap();
+    let mut session = spawn("echo 'Hello World'").unwrap();
     let m = session.expect(Regex("lo.*")).unwrap();
     assert_eq!(m.matches().count(), 1);
     assert_eq!(m.get(0).unwrap(), b"lo World'\r");

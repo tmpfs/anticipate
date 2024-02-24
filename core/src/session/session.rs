@@ -170,7 +170,10 @@ impl<O: LogWriter, P, S: Read + NonBlocking> Session<O, P, S> {
 
             if let Some(timeout) = self.expect_timeout {
                 if start.elapsed() > timeout {
-                    return Err(Error::ExpectTimeout(timeout));
+                    return Err(Error::ExpectTimeout(
+                        timeout,
+                        format!("{:?}", needle),
+                    ));
                 }
             }
         }
@@ -230,7 +233,10 @@ impl<O: LogWriter, P, S: Read + NonBlocking> Session<O, P, S> {
 
             if let Some(timeout) = self.expect_timeout {
                 if start.elapsed() > timeout {
-                    return Err(Error::ExpectTimeout(timeout));
+                    return Err(Error::ExpectTimeout(
+                        timeout,
+                        format!("{:?}", needle),
+                    ));
                 }
             }
         }

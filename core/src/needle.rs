@@ -6,7 +6,7 @@
 use crate::error::Error;
 
 /// Needle an interface for search of a match in a buffer.
-pub trait Needle {
+pub trait Needle: std::fmt::Debug {
     /// Function returns all matches that were occured.
     fn check(&self, buf: &[u8], eof: bool) -> Result<Vec<Match>, Error>;
 }
@@ -43,9 +43,9 @@ impl From<regex::bytes::Match<'_>> for Match {
 
 /// Regex tries to look up a match by a regex.
 #[derive(Debug)]
-pub struct Regex<Re: AsRef<str>>(pub Re);
+pub struct Regex<Re: AsRef<str> + std::fmt::Debug>(pub Re);
 
-impl<Re: AsRef<str>> Needle for Regex<Re> {
+impl<Re: AsRef<str> + std::fmt::Debug> Needle for Regex<Re> {
     fn check(&self, buf: &[u8], _: bool) -> Result<Vec<Match>, Error> {
         let regex = regex::bytes::Regex::new(self.0.as_ref())
             .map_err(|_| Error::RegexParsing)?;
