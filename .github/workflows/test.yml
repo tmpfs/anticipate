@@ -1,11 +1,11 @@
-name: Checks
+name: Tests
 
 on:
   #workflow_call:
   pull_request:
 
 env:
-  RUST_BACKTRACE: 1
+  RUST_BACKTRACE: full
   ANTICIPATE_ECHO: true
 
 jobs:

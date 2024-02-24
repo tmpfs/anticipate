@@ -1,8 +1,3 @@
-use std::error;
-use std::fmt;
-use std::fmt::Display;
-use std::io;
-
 use thiserror::Error;
 
 /// Error type for the library.
@@ -27,12 +22,4 @@ pub enum Error {
     #[cfg(windows)]
     #[error(transparent)]
     Conpty(#[from] conpty::error::Error),
-}
-
-pub(crate) fn to_io_error<E: Display>(
-    message: &'static str,
-) -> impl FnOnce(E) -> io::Error {
-    move |e: E| {
-        io::Error::new(io::ErrorKind::Other, format!("{}; {}", message, e))
-    }
 }
