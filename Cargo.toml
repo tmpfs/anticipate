@@ -1,6 +1,6 @@
 [package]
 name = "anticipate-cli"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 description = "Script runner with asciinema support"
 license = "MIT OR Apache-2.0"
@@ -16,3 +16,7 @@ clap = { version = "4.5", features = ["derive", "wrap_help", "env"] }
 anticipate-runner = { version = "0.5", path = "runner" }
 rayon = "1.8"
 colored = "2"
+
+[[bin]]
+name = "anticipate"
+path = "src/main.rs"
