@@ -21,7 +21,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 const PROMPT: &str = "➜ ";
 #[cfg(unix)]
-const COMMAND: &str "bash -noprofile -norc";
+const COMMAND: &str = "bash -noprofile -norc";
 #[cfg(windows)]
 const COMMAND: &str = "powershell";
 
