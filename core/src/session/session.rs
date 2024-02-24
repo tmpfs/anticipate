@@ -440,10 +440,6 @@ struct TryStream<S> {
 }
 
 impl<S> TryStream<S> {
-    fn into_inner(self) -> S {
-        self.stream.inner.into_inner().inner
-    }
-
     fn as_ref(&self) -> &S {
         &self.stream.inner.get_ref().inner
     }
@@ -460,17 +456,9 @@ impl<S: Read> TryStream<S> {
             stream: ControlledReader::new(stream),
         })
     }
-
-    fn flush_in_buffer(&mut self) {
-        self.stream.flush_in_buffer();
-    }
 }
 
 impl<S> TryStream<S> {
-    fn keep_in_buffer(&mut self, v: &[u8]) {
-        self.stream.keep_in_buffer(v);
-    }
-
     fn get_available(&mut self) -> &[u8] {
         self.stream.get_available()
     }

@@ -41,9 +41,7 @@ impl Process for UnixProcess {
     }
 
     fn open_stream(&mut self) -> Result<Self::Stream> {
-        let stream = self
-            .proc
-            .get_pty_stream()?;
+        let stream = self.proc.get_pty_stream()?;
         let stream = PtyStream::new(stream);
         Ok(stream)
     }
@@ -51,8 +49,7 @@ impl Process for UnixProcess {
 
 impl Healthcheck for UnixProcess {
     fn is_alive(&mut self) -> Result<bool> {
-        Ok(self.proc
-            .is_alive()?)
+        Ok(self.proc.is_alive()?)
     }
 }
 

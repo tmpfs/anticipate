@@ -2,7 +2,7 @@ use crate::{
     resolve_path, Error, Instruction, Instructions, Result, ScriptParser,
 };
 use anticipate::{
-    log::{NoopLogWriter, LogWriter, PrefixLogWriter, StandardLogWriter},
+    log::{LogWriter, NoopLogWriter, PrefixLogWriter, StandardLogWriter},
     repl::ReplSession,
     spawn_with_options, ControlCode, Expect, Regex, Session,
 };
@@ -25,6 +25,7 @@ const COMMAND: &str = "bash -noprofile -norc";
 #[cfg(windows)]
 const COMMAND: &str = "powershell";
 
+/// Source for probability distribution.
 struct Source<T>(T);
 
 impl<T: rand::RngCore> source::Source for Source<T> {
@@ -289,7 +290,8 @@ impl ScriptFile {
                 spawn_with_options(cmd, None, timeout)?;
             start(pty, prompt, options, pragma, instructions)?;
         } else if options.echo && !options.format {
-            let pty = spawn_with_options(cmd, Some(StandardLogWriter), timeout)?;
+            let pty =
+                spawn_with_options(cmd, Some(StandardLogWriter), timeout)?;
             start(pty, prompt, options, pragma, instructions)?;
         } else if options.echo && options.format {
             let pty =

@@ -15,7 +15,8 @@ fn expect_str() {
 #[test]
 fn expect_str() {
     let mut session =
-        spawn(r#"powershell -c "python ./tests/actions/cat/main.py""#).unwrap();
+        spawn(r#"powershell -c "python ./tests/actions/cat/main.py""#)
+            .unwrap();
     session.send_line("Hello World\n\r").unwrap();
     session.expect("Hello World").unwrap();
 }

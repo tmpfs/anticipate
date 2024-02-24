@@ -24,13 +24,14 @@ impl ProcessTrait for WinProcess {
     type Stream = ProcessStream;
 
     fn spawn<S: AsRef<str>>(cmd: S) -> Result<Self> {
-        Ok(spawn(cmd.as_ref())
-            .map(|proc| WinProcess { proc })?)
+        Ok(spawn(cmd.as_ref()).map(|proc| WinProcess { proc })?)
     }
 
     fn spawn_command(command: Self::Command) -> Result<Self> {
-        Ok(conpty::Process::spawn(command)
-            .map(|proc| WinProcess { proc })?)
+        Ok(
+            conpty::Process::spawn(command)
+                .map(|proc| WinProcess { proc })?,
+        )
     }
 
     fn open_stream(&mut self) -> Result<Self::Stream> {
