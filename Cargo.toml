@@ -1,9 +1,10 @@
 [package]
 name = "anticipate-cli"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 description = "Script runner with asciinema support"
 license = "MIT OR Apache-2.0"
+default-run = "anticipate"
 
 [workspace]
 members = ["runner", "core"]

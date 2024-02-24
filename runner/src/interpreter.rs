@@ -20,6 +20,7 @@ use tracing::{span, Level};
 use unicode_segmentation::UnicodeSegmentation;
 
 const PROMPT: &str = "➜ ";
+
 #[cfg(unix)]
 const COMMAND: &str = "bash -noprofile -norc";
 #[cfg(windows)]
@@ -92,7 +93,7 @@ impl Default for InterpreterOptions {
             timeout: Some(10000),
             cinema: None,
             id: None,
-            echo: std::env::var("ANTICIPATE_ECHO").ok().is_some(),
+            echo: false,
             format: false,
             print_comments: false,
         }
@@ -290,12 +291,18 @@ impl ScriptFile {
                 spawn_with_options(cmd, None, timeout)?;
             start(pty, prompt, options, pragma, instructions)?;
         } else if options.echo && !options.format {
-            let pty =
-                spawn_with_options(cmd, Some(StandardLogWriter), timeout)?;
+            let pty = spawn_with_options(
+                cmd,
+                Some(StandardLogWriter::default()),
+                timeout,
+            )?;
             start(pty, prompt, options, pragma, instructions)?;
         } else if options.echo && options.format {
-            let pty =
-                spawn_with_options(cmd, Some(PrefixLogWriter), timeout)?;
+            let pty = spawn_with_options(
+                cmd,
+                Some(PrefixLogWriter::default()),
+                timeout,
+            )?;
             start(pty, prompt, options, pragma, instructions)?;
         }
 

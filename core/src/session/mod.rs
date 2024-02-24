@@ -95,7 +95,12 @@ impl Session<PrefixLogWriter> {
     pub fn spawn(command: Command) -> Result<Self, Error> {
         let mut process = OsProcess::spawn_command(command)?;
         let stream = process.open_stream()?;
-        Ok(Self::new(process, stream, Some(PrefixLogWriter), None)?)
+        Ok(Self::new(
+            process,
+            stream,
+            Some(PrefixLogWriter::default()),
+            None,
+        )?)
     }
 }
 
@@ -113,6 +118,11 @@ impl Session<StandardLogWriter> {
     pub fn spawn(command: Command) -> Result<Self, Error> {
         let mut process = OsProcess::spawn_command(command)?;
         let stream = process.open_stream()?;
-        Ok(Self::new(process, stream, Some(StandardLogWriter), None)?)
+        Ok(Self::new(
+            process,
+            stream,
+            Some(StandardLogWriter::default()),
+            None,
+        )?)
     }
 }
