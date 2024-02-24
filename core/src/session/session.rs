@@ -21,10 +21,9 @@ pub struct Session<
     S = super::OsProcessStream,
 > {
     proc: P,
-    stream: TryStream<S>,
+    stream: TryStream<O, S>,
     expect_timeout: Option<Duration>,
     expect_lazy: bool,
-    logger: Option<O>,
 }
 
 impl<O, P, S> Session<O, P, S>
@@ -39,14 +38,13 @@ where
         logger: Option<O>,
         timeout: Option<Duration>,
     ) -> io::Result<Self> {
-        let stream = TryStream::new(stream)?;
-        let timeout = timeout.unwrap_or_else(|| Duration::from_millis(15000));
+        let stream = TryStream::new(stream, logger)?;
+        let timeout = timeout.unwrap_or_else(|| Duration::from_millis(5000));
         Ok(Self {
             proc: process,
             stream,
             expect_timeout: Some(timeout),
             expect_lazy: false,
-            logger,
         })
     }
 }
@@ -390,6 +388,7 @@ impl<O: LogWriter, P, S: Read + NonBlocking> Session<O, P, S> {
     /// Returns `[std::io::ErrorKind::WouldBlock]`
     /// in case if there's nothing to read.
     pub fn try_read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        println!("try_read...");
         self.stream.try_read(buf)
     }
 
@@ -401,11 +400,7 @@ impl<O: LogWriter, P, S: Read + NonBlocking> Session<O, P, S> {
 
 impl<O: LogWriter, P, S: Write> Write for Session<O, P, S> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let n = self.stream.write(buf)?;
-        if let Some(logger) = self.logger.as_mut() {
-            logger.log_write(&mut std::io::stdout(), buf);
-        }
-        Ok(n)
+        self.stream.write(buf)
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
@@ -423,8 +418,8 @@ impl<O: LogWriter, P, S: Write> Write for Session<O, P, S> {
 impl<O: LogWriter, P, S: Read> Read for Session<O, P, S> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         let n = self.stream.read(buf)?;
-        if let Some(logger) = self.logger.as_mut() {
-            logger.log_read(&mut std::io::stdout(), buf);
+        if let Some(logger) = self.stream.logger.as_mut() {
+            logger.log_read(&buf[..n]);
         }
         Ok(n)
     }
@@ -441,11 +436,12 @@ impl<O: LogWriter, P, S: Read> BufRead for Session<O, P, S> {
 }
 
 #[derive(Debug)]
-struct TryStream<S> {
+struct TryStream<O: LogWriter, S> {
     stream: ControlledReader<S>,
+    logger: Option<O>,
 }
 
-impl<S> TryStream<S> {
+impl<O: LogWriter, S> TryStream<O, S> {
     fn as_ref(&self) -> &S {
         &self.stream.inner.get_ref().inner
     }
@@ -455,16 +451,17 @@ impl<S> TryStream<S> {
     }
 }
 
-impl<S: Read> TryStream<S> {
+impl<O: LogWriter, S: Read> TryStream<O, S> {
     /// The function returns a new Stream from a file.
-    fn new(stream: S) -> io::Result<Self> {
+    fn new(stream: S, logger: Option<O>) -> io::Result<Self> {
         Ok(Self {
             stream: ControlledReader::new(stream),
+            logger,
         })
     }
 }
 
-impl<S> TryStream<S> {
+impl<O: LogWriter, S> TryStream<O, S> {
     fn get_available(&mut self) -> &[u8] {
         self.stream.get_available()
     }
@@ -474,7 +471,7 @@ impl<S> TryStream<S> {
     }
 }
 
-impl<R: Read + NonBlocking> TryStream<R> {
+impl<O: LogWriter, R: Read + NonBlocking> TryStream<O, R> {
     /// Try to read in a non-blocking mode.
     ///
     /// It raises io::ErrorKind::WouldBlock if there's nothing to read.
@@ -509,6 +506,10 @@ impl<R: Read + NonBlocking> TryStream<R> {
                 Ok(0) => break Ok(true),
                 Ok(n) => {
                     self.stream.keep_in_buffer(&buf[..n]);
+
+                    if let Some(logger) = self.logger.as_mut() {
+                        logger.log_read(&buf[..n]);
+                    }
                 }
                 Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
                     break Ok(false)
@@ -528,6 +529,7 @@ impl<R: Read + NonBlocking> TryStream<R> {
             Ok(0) => Ok(Some(0)),
             Ok(n) => {
                 self.stream.keep_in_buffer(&buf[..n]);
+
                 Ok(Some(n))
             }
             Err(err) if err.kind() == io::ErrorKind::WouldBlock => Ok(None),
@@ -539,6 +541,8 @@ impl<R: Read + NonBlocking> TryStream<R> {
     fn try_read_inner(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.stream.get_mut().set_non_blocking()?;
 
+        //self.stream.get_mut().set_blocking()?;
+
         let result = self.stream.get_mut().read(buf);
 
         // As file is DUPed changes in one descriptor affects all ones
@@ -549,9 +553,13 @@ impl<R: Read + NonBlocking> TryStream<R> {
     }
 }
 
-impl<S: Write> Write for TryStream<S> {
+impl<O: LogWriter, S: Write> Write for TryStream<O, S> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.stream.inner.get_mut().inner.write(buf)
+        let n = self.stream.inner.get_mut().inner.write(buf)?;
+        if let Some(logger) = self.logger.as_mut() {
+            logger.log_write(buf);
+        }
+        Ok(n)
     }
 
     fn flush(&mut self) -> io::Result<()> {
@@ -566,15 +574,19 @@ impl<S: Write> Write for TryStream<S> {
     }
 }
 
-impl<R: Read> Read for TryStream<R> {
+impl<O: LogWriter, R: Read> Read for TryStream<O, R> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.stream.inner.read(buf)
     }
 }
 
-impl<R: Read> BufRead for TryStream<R> {
+impl<O: LogWriter, R: Read> BufRead for TryStream<O, R> {
     fn fill_buf(&mut self) -> io::Result<&[u8]> {
-        self.stream.inner.fill_buf()
+        let buf = self.stream.inner.fill_buf()?;
+        if let Some(logger) = self.logger.as_mut() {
+            logger.log_read(buf);
+        }
+        Ok(buf)
     }
 
     fn consume(&mut self, amt: usize) {

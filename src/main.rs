@@ -84,7 +84,7 @@ pub enum Command {
         setup: Vec<PathBuf>,
 
         /// Scripts to run afterwards in sequence.
-        #[clap(short, long)]
+        #[clap(long)]
         teardown: Vec<PathBuf>,
 
         /// Execute scripts in parallel.
@@ -128,7 +128,7 @@ pub enum Command {
         setup: Vec<PathBuf>,
 
         /// Scripts to record afterwards in sequence.
-        #[clap(short, long)]
+        #[clap(long)]
         teardown: Vec<PathBuf>,
 
         /// Execute scripts in parallel.

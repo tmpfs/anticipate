@@ -133,7 +133,7 @@ fn expect_eof_timeout() {
     let mut p = spawn("sleep 3").expect("cannot run sleep 3");
     p.set_expect_timeout(Some(Duration::from_millis(100)));
     match p.expect(Eof) {
-        Err(anticipate::Error::ExpectTimeout(_)) => {}
+        Err(anticipate::Error::ExpectTimeout(_, _)) => {}
         r => panic!("reached a timeout {r:?}"),
     }
 }
@@ -144,7 +144,7 @@ fn expect_eof_timeout() {
     let mut p = spawn("sleep 3").expect("cannot run sleep 3");
     p.set_expect_timeout(Some(Duration::from_millis(100)));
     match p.expect(Eof) {
-        Err(anticipate::Error::ExpectTimeout(_)) => {}
+        Err(anticipate::Error::ExpectTimeout(_, _)) => {}
         r => panic!("should raise TimeOut {:?}", r),
     }
 }
