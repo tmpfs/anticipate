@@ -4,6 +4,7 @@ use std::io::prelude::*;
 #[cfg(windows)]
 fn conpty_echo() {
     let mut proc = conpty::spawn("echo Hello World").unwrap();
+    proc.set_echo(true).unwrap();
     let mut reader = proc.output().unwrap();
 
     let mut buf = [0; 1028];
