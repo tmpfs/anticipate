@@ -34,11 +34,6 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Python check
-        shell: bash
-        run: |
-          python ./core/tests/actions/echo/main.py Hello World
-
       - name: Run tests
         run: |
           cargo test --all

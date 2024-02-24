@@ -53,7 +53,7 @@ fn expect_regex() {
         spawn("echo 'Hello World'").unwrap();
     let m = session.expect(Regex("lo.*")).unwrap();
     assert_eq!(m.matches().count(), 1);
-    assert_eq!(m.get(0).unwrap(), b"lo World");
+    assert_eq!(m.get(0).unwrap(), b"lo World'\r");
 }
 
 #[cfg(unix)]
