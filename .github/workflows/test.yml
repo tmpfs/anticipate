@@ -36,7 +36,7 @@ jobs:
 
       - name: Powershell version
         run: |
-          $PSVersionTable.PSVersion
+          get-command powershell
 
       - name: Run tests
         run: |
