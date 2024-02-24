@@ -6,6 +6,7 @@ on:
 
 env:
   RUST_BACKTRACE: 1
+  ANTICIPATE_ECHO: true
 
 jobs:
   check:

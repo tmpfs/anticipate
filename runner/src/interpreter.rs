@@ -93,7 +93,7 @@ impl Default for InterpreterOptions {
             timeout: Some(5000),
             cinema: None,
             id: None,
-            echo: false,
+            echo: std::env::var("ANTICIPATE_ECHO").ok().is_some(),
             format: false,
             print_comments: false,
         }
