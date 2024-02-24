@@ -34,9 +34,10 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Powershell version
+      - name: Python check
+        shell: bash
         run: |
-          get-command powershell
+          python ./core/tests/actions/echo/main.py Hello World
 
       - name: Run tests
         run: |
