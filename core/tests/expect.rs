@@ -13,7 +13,6 @@ fn expect_str() {
 
 #[cfg(windows)]
 #[test]
-#[ignore]
 fn expect_str() {
     let mut session =
         spawn(r#"pwsh -c "python ./tests/actions/cat/main.py""#)
@@ -45,7 +44,6 @@ fn expect_regex_lazy() {
 
 #[cfg(windows)]
 #[test]
-#[ignore]
 fn expect_regex() {
     let mut session =
         spawn("echo 'Hello World'").unwrap();
@@ -66,7 +64,6 @@ fn expect_n_bytes() {
 
 #[cfg(windows)]
 #[test]
-#[ignore]
 fn expect_n_bytes() {
     use anticipate::DefaultSession;
     use std::process::Command;
@@ -119,7 +116,6 @@ fn read_after_expect_str() {
 
 #[cfg(windows)]
 #[test]
-#[ignore]
 fn read_after_expect_str() {
     let mut session = spawn("echo 'Hello World'").unwrap();
 

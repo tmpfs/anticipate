@@ -16,9 +16,9 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          #- os: ubuntu-latest
-          - os: windows-latest
-          #- os: macos-latest
+          - os: ubuntu-latest
+          #- os: windows-latest
+          - os: macos-latest
     steps:
       - uses: actions/checkout@v4
       - name: ⚡ Cache
@@ -32,4 +32,4 @@ jobs:
 
       - name: Run tests
         run: |
-          cargo test conpty --all -- --nocapture
+          cargo test --all -- --nocapture
