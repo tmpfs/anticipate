@@ -15,7 +15,7 @@
 //! p.read_line(&mut line).unwrap();
 //! ```
 
-mod session;
+mod pty_session;
 
 use crate::{log::*, process::Process, Error};
 use std::{process::Command, time::Duration};
@@ -35,7 +35,7 @@ pub type OsProcess = OsProc;
 /// OS process stream which is a default one for [`Session`].
 pub type OsProcessStream = OsProcStream;
 
-pub use session::Session;
+pub use pty_session::Session;
 
 /// Session without logging.
 pub type DefaultSession = Session<NoopLogWriter>;

@@ -23,8 +23,7 @@ impl Process for UnixProcess {
     fn spawn<S: AsRef<str>>(cmd: S) -> Result<Self> {
         let args = tokenize_command(cmd.as_ref());
         if args.is_empty() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
+            return Err(io::Error::other(
                 "Failed to parse a command",
             ));
         }
@@ -128,7 +127,7 @@ pub(crate) fn make_non_blocking(fd: RawFd, blocking: bool) -> Result<()> {
 }
 
 fn nix_error_to_io(err: nix::Error) -> io::Error {
-    io::Error::new(io::ErrorKind::Other, err)
+    io::Error::other(err)
 }
 
 /// Turn e.g. "prog arg1 arg2" into ["prog", "arg1", "arg2"]

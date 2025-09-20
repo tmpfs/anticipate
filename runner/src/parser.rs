@@ -16,7 +16,7 @@ fn pragma(lex: &mut Lexer<Token>) -> Option<String> {
 
 fn integer(lex: &mut Lexer<Token>) -> Option<u64> {
     let slice = lex.slice();
-    if let Some(num) = slice.split(' ').last() {
+    if let Some(num) = slice.split(' ').next_back() {
         num.parse().ok()
     } else {
         None
@@ -258,7 +258,7 @@ impl ScriptParser {
         Ok((&source[begin.start..finish.end], finish))
     }
 
-    pub(crate) fn interpolate(value: &str) -> Result<Cow<str>> {
+    pub(crate) fn interpolate<'a>(value: &'a str) -> Result<Cow<'a, str>> {
         if value.contains('$') {
             let mut s = String::new();
             let mut lex = EnvVars::lexer(value);

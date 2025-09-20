@@ -19,10 +19,10 @@ use std::{
 };
 
 /// Resolve a possibly relative path.
-pub(crate) fn resolve_path(
+pub(crate) fn resolve_path<'a>(
     base: impl AsRef<Path>,
-    input: &str,
-) -> Result<Cow<str>> {
+    input: &'a str,
+) -> Result<Cow<'a, str>> {
     let path = PathBuf::from(input);
     if path.is_relative() {
         if let Some(parent) = base.as_ref().parent() {

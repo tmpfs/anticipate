@@ -1,5 +1,4 @@
 //! Pseudo-terminal session.
-
 use std::{
     io::{self, BufRead, BufReader, Read, Write},
     time::{self, Duration},
